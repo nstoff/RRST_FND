@@ -1,7 +1,7 @@
-# title: 	RRST in FND
-# description: 	multi center study CH and CZ
-# date: 	4 October 2024
-# author: 	Natascha Stoffel
+# RRST in FND
+# multi center study CH and CZ
+ date: 	4 October 2024
+ author: 	Natascha Stoffel
 
 This git hub repository entails the data, scripts and output for the project "Respiratory Sensitivity in Functional Neurological Disorders - a multi center study" - Sojka & Stoffel, Gninenko, Aybek & Terranova
 
