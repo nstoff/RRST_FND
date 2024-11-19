@@ -3,7 +3,7 @@
  date: 	4 October 2024 
  author: 	Natascha Stoffel
  
-This git hub repository entails the data, scripts and output for the project "Respiratory Sensitivity in Functional Neurological Disorders - a multi center study" - Stoffel & Sojka, Gninenko, Terranova, Aybek
+This git hub repository entails the data, scripts and output for the project "Respiratory Sensitivity in Functional Neurological Disorders" - Stoffel & Sojka, Gninenko, Terranova, Aybek
 
 
 The original RRST device was built and published by Nikolova et al 2019
