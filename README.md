@@ -11,8 +11,11 @@ The original RRST device was built and published by Nikolova et al 2019
 
 
 Our repository is structured as follows:
+
 device :	information about the assembly of the device including a manual, pictures, videos and the task code
+
 publication : the publication that follows this project
+
 
 markdown  
     > code :  R script (quarto document/html file)
