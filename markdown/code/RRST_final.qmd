@@ -77,7 +77,7 @@ df_FND <- df[df$group == "1", ]
 
 ```
 
-## Identifying & Argueing for the Outlier to exclude
+## Identifying & Arguing for the Outlier to exclude
 
 ```{r}
 # Testing Outlier using boxplot (standard deviation)
@@ -494,74 +494,73 @@ tbl2 <- Data.t %>%
     ) %>%
     add_overall(last = FALSE)
 tbl2
+
+# calculation of cohens d for variable of interest
+# Define the function
+calculate_cohens_d <- function(data, variable, group_var, group1, group2) {
+  # Subset the data for each group
+  group1_data <- data[[variable]][data[[group_var]] == group1]
+  group2_data <- data[[variable]][data[[group_var]] == group2]
+  
+  # Calculate means and standard deviations
+  mean1 <- mean(group1_data, na.rm = TRUE)
+  mean2 <- mean(group2_data, na.rm = TRUE)
+  sd1 <- sd(group1_data, na.rm = TRUE)
+  sd2 <- sd(group2_data, na.rm = TRUE)
+  
+  # Calculate sample sizes
+  n1 <- sum(!is.na(group1_data))
+  n2 <- sum(!is.na(group2_data))
+  
+  # Calculate pooled standard deviation
+  sd_pooled <- sqrt(((n1 - 1) * sd1^2 + (n2 - 1) * sd2^2) / (n1 + n2 - 2))
+  
+  # Calculate Cohen's d
+  cohens_d <- (mean1 - mean2) / sd_pooled
+  
+  # Return Cohen's d
+  return(cohens_d)
+}
+
+# Calculate Cohen's d for variables of interest
+cohens_d_rrst <- calculate_cohens_d(df, "rrst_sensitivity", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_rrst) # cohens d of -0.467 means with an effect size of 0.46 FND has LOWER values than HC
+
+cohens_d_meta <- calculate_cohens_d(df, "metascore", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_meta) # cohens d of -0.128 means with an effect size of 0.128 FND has LOWER values than HC
+
+cohens_d_maia <- calculate_cohens_d(df, "maia_total", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_maia) # cohens d of -0.786 means with an effect size of 0.786 FND has LOWER values than HC
+
+cohens_d_ias <- calculate_cohens_d(df, "ias", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_ias) # cohens d of -0.651 means with an effect size of 0.651 FND has LOWER values than HC
 ```
 
-# 3) Interoception
-
-Here we model interoceptive variables using group and clinical predictors
-
+# 3) Symptom Severity as dependent variables
+## 3.1 ) Correlations
 ```{r}
 #| warning: FALSE
 #| error: FALSE
 
-# predicting group with interoceptive variables and most important covariates
-glm <- glm(formula = group ~  sex + rrst_sensitivity  + metascore + maia_total + ias + anx_dep_SUM + ctq_total + sdq,
-            data = df,
-            family = binomial) # as group has two levels
-summary(glm) # SDQ predict group
+# SIMPLE CORRELATION OF INTEROCEPTIVE VARIABLES WITH SYMPTOM SEVERITY (that we have for both groups; SDQ)
+cor.test(df$rrst_sensitivity, df$sdq, method = "pearson") 
+ # p-value = 0.0002628,  cor = -0.3737694 
 
-# testing for best model fit with covariates at hand
-lmrrst1 <- lm(rrst_sensitivity ~ group + anx_dep_SUM + psychotropic_medication, data = df)
-lmrrst2 <- lm(rrst_sensitivity ~ group + anx_dep_SUM + ctq_total + sdq, data = df)
-lmrrst3 <- lm(rrst_sensitivity ~ group + sex + psychotropic_medication + anx_dep_SUM + ctq_total + sdq, data = df)
-lmrrst4 <- lm(rrst_sensitivity ~ group + bmi + psychotropic_medication + anx_dep_SUM + ctq_total + sdq, data = df)
-lmrrst5 <- lm(rrst_sensitivity ~ group + sex + bmi + psychotropic_medication + anx_dep_SUM + ctq_total, data = df)
-lmrrst6 <- lm(rrst_sensitivity ~ group + sex + bmi + psychotropic_medication + anx_dep_SUM + ctq_total + sdq, data = df)
-lmrrst7 <- lm(rrst_sensitivity ~ group + bmi + psychotropic_medication + anx_dep_SUM + ctq_total + sdq, data = df)
-lmrrst8 <- lm(rrst_sensitivity ~ group + sex + age + bmi + psychotropic_medication + anx_dep_SUM + ctq_total + sdq, data = df)
+cor.test(df$metascore, df$sdq, method = "pearson")  
+# p-value = 0.01012, cor = -0.2683359 
 
-AIC(lmrrst1, lmrrst2, lmrrst3, lmrrst4, lmrrst5, lmrrst6, lmrrst7, lmrrst8) # model 3, 6 and 8 are low
-anova(lmrrst3, lmrrst6, lmrrst8) # testing whether it adds sig value if we change from 3 to 6 to 8; no--> model 3 chosen
+cor.test(df$traitPE_iasRRST, df$sdq, method = "pearson") 
+# p-value = 0.470, cor= -0.07664066 
 
-# predciting rrst sensitvity with covariates
-lm<-lm(rrst_sensitivity ~ group + sex + psychotropic_medication + anx_dep_SUM + ctq_total + sdq,
-  data = df)
-summary(lm) # SEX, MEDICATION, CTQ and SDQ sig associated with RRST-sensitivity
-
-# RRST sensitivity and separate CTQ subscores
-lmrrst <- lm(
-  rrst_sensitivity ~ group + ctq_physab + ctq_emoab + ctq_sexab + ctq_emoneg + ctq_physneg,
-  data = df)
-summary(lmrrst)  # no subscale in intself associated with RRST
-
-
-# predciting  rrst metascore with covariates
-lm<-lm(metascore ~ group + sex + psychotropic_medication + anx_dep_SUM + ctq_total + sdq,
-  data = df)
-summary(lm) #  SDQ and CTQ sig associated with METASCORE
-
-# RRST metascore and separate CTQ subscores
-lm <- lm(
-  metascore ~ group + ctq_physab + ctq_emoab + ctq_sexab + ctq_emoneg + ctq_physneg,
-  data = df)
-summary(lm) # no subcascale in itself associated with RRST
-
-
-# predciting  traitPE uing RRST and MAIA with covariates
-lm<-lm(traitPE_maiaRRST ~ group + sex + psychotropic_medication + anx_dep_SUM + ctq_total + sdq,
-  data = df)
-summary(lm) #  SEX, MEDICATION and ANX-DEP sum score sig associated with traitPE-maia
-
-# predciting  traitPE uing RRST and MAIA with covariates
-lm<-lm(traitPE_iasRRST ~ group + sex + psychotropic_medication + anx_dep_SUM + ctq_total + sdq,
-  data = df)
-summary(lm) #  MEDICATION sig associated with traitPE-ias
+cor.test(df$traitPE_maiaRRST, df$sdq, method = "pearson") 
+#  p-value = 0.9064, cor = -0.01250354 
 
 ```
-
-# 4) Symptom Severity (FND only)
-
+## 3.2 ) Regression Analysis for Symptom Severity
+### 3.2.1 ) Different Variables of Symptom Severity
 ```{r}
+#| warning: FALSE
+#| error: FALSE
 # Compute the correlation matrix with variables of symptom severity to see whether they correlate
 # Select the desired variables
 severity_variables <- df_FND[, c("sfmdrs", "cgi", "sdq", "sum_positive_signs", "sum_severity")]
@@ -585,25 +584,108 @@ p_matrix
 ### SDQ & SUM_POS corr: r=0.4738588, p=1.157504e-03
 ### CGI & SUM_SEVERITY corr: r=0.43742577 , p=0.002985648
 
+```
+### 3.2.2 ) SDQ (full sample) - sig
+```{r}
+#| warning: FALSE
+#| error: FALSE
+#SDQ 
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + group + sex,
+                 data = df) 
+summary(sdq_lm)  # RRST sensitivity and GROUP
+
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + group + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm)  # RRST sensitivity and GROUP and ANX_DEP ; meaning this assocaition is not due to the differences in affective symptoms 
+
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + group + anx_dep_SUM + psychotropic_medication,
+                 data = df) 
+summary(sdq_lm)  # RRST sensitivity and GROUP and ANX_DEP ; meaning these assocaition are not due to the difference of psychotropic medication
+
+#SDQ 
+sdq_lm <- lm(formula = sdq ~  metascore + group + sex,
+                 data = df) 
+summary(sdq_lm)  #  metascore and GROUP
+
+sdq_lm <- lm(formula = sdq ~  metascore + sex + group + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm)  #  metascore and GROUP and ANX_DEP ; meaning this assocaition is not due to the differences in affective symptoms 
+
+sdq_lm <- lm(formula = sdq ~  metascore + sex + group + anx_dep_SUM + psychotropic_medication,
+                 data = df) 
+summary(sdq_lm)  #  metascore and GROUP ; meaning ANX-DEP was maybe due to psychotropic mediation, but the other two assocaitions are not due to the difference of psychotropic medication
+
+```
+### 3.2.3 ) Symptom Scores (FND only) - no sig
+```{r}
+#| warning: FALSE
+#| error: FALSE
+
 #SFMDRS
-sfmdrslm <- lm(formula = sfmdrs ~  rrst_sensitivity + traitPE_iasRRST + traitPE_maiaRRST + metascore,
+sfmdrslm <- lm(formula = sfmdrs ~  rrst_sensitivity + sex,
+               data = df_FND) 
+summary(sfmdrslm)   # no sig association
+
+#SFMDRS
+sfmdrslm <- lm(formula = sfmdrs ~  metascore + sex,
                data = df_FND) 
 summary(sfmdrslm)   # no sig association
 
 #CGI
-cgilm <- lm(formula = cgi ~ rrst_sensitivity + traitPE_iasRRST + traitPE_maiaRRST + metascore,
+cgilm <- lm(formula = cgi ~  rrst_sensitivity + sex,
             data = df_FND) 
-summary(cgilm) # no sig assocaition
+summary(cgilm) # no sig association
+
+#CGI
+cgilm <- lm(formula = cgi ~  metascore + sex,
+            data = df_FND) 
+summary(cgilm) # no sig association
 
 #Sum score pos signs  (pos signs like wekaness in deltoid/stenocleido etc, co-contractions, give way weakness, hoover, hyposensitivity)
-sum_pos_lm <- lm(formula = sum_positive_signs ~  rrst_sensitivity + metascore + ias + maia_total,
+sum_pos_lm <- lm(formula = sum_positive_signs ~  rrst_sensitivity + sex,
                  data = df_FND) 
-summary(sum_pos_lm)   # p=0.0556 for rrst_sensitivity
+summary(sum_pos_lm)   # no sig assocaition
+
+#Sum score pos signs  
+sum_pos_lm <- lm(formula = sum_positive_signs ~  metascore + sex,
+                 data = df_FND) 
+summary(sum_pos_lm)   # no sig assocaition
 
 #Sum score severity (motor weakness and seizure frequency)
-sum_pos_lm <- lm(formula = sum_severity ~  rrst_sensitivity + metascore + ias + maia_total,
+sum_pos_lm <- lm(formula = sum_severity ~  rrst_sensitivity + sex,
                  data = df_FND) 
-summary(sum_pos_lm)  # p= 0.069 for metascore
+summary(sum_pos_lm)  # no sig assocaition
+
+#Sum score severity 
+sum_pos_lm <- lm(formula = sum_severity ~  metascore + sex,
+                 data = df_FND) 
+summary(sum_pos_lm)  # no sig assocaition
+```
+
+# 4) Interoception as dependent variable
+### 4.1) Regression Analysis
+
+```{r}
+# predciting rrst sensitvity with covariates
+lm<-lm(rrst_sensitivity ~ group + sex + psychotropic_medication + anx_dep_SUM,
+  data = df)
+summary(lm) # MEDICATION sig associated with RRST-sensitivity
+
+# predciting  rrst metascore with covariates
+lm<-lm(metascore ~ group + sex + psychotropic_medication + anx_dep_SUM,
+  data = df)
+summary(lm)  #  no sig
+
+# predciting  traitPE uing RRST and MAIA with covariates
+lm<-lm(traitPE_maiaRRST ~ group + sex + psychotropic_medication + anx_dep_SUM,
+  data = df)
+summary(lm) #  MEDICATION and ANX-DEP sum score sig associated with traitPE-maia
+
+# predciting  traitPE uing RRST and MAIA with covariates
+lm<-lm(traitPE_iasRRST ~ group + sex + psychotropic_medication + anx_dep_SUM,
+  data = df)
+summary(lm) #  no sig
+
 ```
 
 # 5) Visualization of sig association
@@ -627,72 +709,6 @@ RRST_sdq <- ggplot(df_plot, aes(x = sdq, y = rrst_sensitivity, color = as.factor
 
 RRST_sdq
 
-# CTQ-RRST_sensitivity
-RRST_ctq <- ggplot(df_plot, aes(x = ctq_total, y = rrst_sensitivity, color = as.factor(group))) +
-  geom_point() +  # Scatterplot for both groups
-  geom_smooth(method = "lm", se = TRUE) +  # Add regression lines and SE
-  labs(x = "Experience of Childhood Trauma (CTQ)", 
-       y = "Respiratory Sensitivity (RRST)", 
-       title = "Respiratory Interoception (FND vs HC)",
-       color = "Group") +  # Label for the legend
-  theme_minimal() +
-  scale_color_manual(values = c("HC" = "#868686FF", "FND" = "#E95248")) + #custom colors
-  theme(panel.grid = element_blank())  # Remove grid lines
-RRST_ctq
-
-# VISUALIZATION PER CTQ SUBSCORE that was foudn sig between groups
-# Physical_Abuse-RRST_sensitivity
-RRST_physab <- ggplot(df_plot, aes(x = ctq_physab, y = rrst_sensitivity, color = as.factor(group))) +
-  geom_point() +  # Scatterplot for both groups
-  geom_smooth(method = "lm", se = TRUE) +  # Add regression lines and SE
-  labs(x = "Physical Abuse in Childhood (CTQ subscale)", 
-       y = "Respiratory Sensitivity (RRST)", 
-       title = "Respiratory Interoception (FND vs HC)",
-       color = "Group") +  # Label for the legend
-  theme_minimal() +
-  scale_color_manual(values = c("HC" = "#868686FF", "FND" = "#E95248")) + #custom colors
-  theme(panel.grid = element_blank())  # Remove grid lines
-RRST_physab
-
-# Emotional_Neglect-RRST_sensitivity
-RRST_emoneg <- ggplot(df_plot, aes(x = ctq_emoneg, y = rrst_sensitivity, color = as.factor(group))) +
-  geom_point() +  # Scatterplot for both groups
-  geom_smooth(method = "lm", se = TRUE) +  # Add regression lines and SE
-  labs(x = "Emotional Neglegt in Childhood (CTQ subscale)", 
-       y = "Respiratory Sensitivity (RRST)", 
-       title = "Respiratory Interoception (FND vs HC)",
-       color = "Group") +  # Label for the legend
-  theme_minimal() +
-  scale_color_manual(values = c("HC" = "#868686FF", "FND" = "#E95248")) + #custom colors
-  theme(panel.grid = element_blank())  # Remove grid lines
-RRST_emoneg
-
-# Emotional_Abuse-RRST_sensitivity
-RRST_emoab <- ggplot(df_plot, aes(x = ctq_emoab, y = rrst_sensitivity, color = as.factor(group))) +
-  geom_point() +  # Scatterplot for both groups
-  geom_smooth(method = "lm", se = TRUE) +  # Add regression lines and SE
-  labs(x = "Emotional Abuse in Childhood (CTQ subscale)", 
-       y = "Respiratory Sensitivity (RRST)", 
-       title = "Respiratory Interoception (FND vs HC)",
-       color = "Group") +  # Label for the legend
-  theme_minimal() +
-  scale_color_manual(values = c("HC" = "#868686FF", "FND" = "#E95248")) + #custom colors
-  theme(panel.grid = element_blank())  # Remove grid lines
-RRST_emoab
-
-# Sex-RRST_sensitivity
-RRST_sex <- ggplot(df_plot, aes(x = as.factor(sex), y = rrst_sensitivity, fill = as.factor(group))) +
-  geom_boxplot() +  # Create the box plot
-  geom_jitter(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.75), color = "black", size = 1.5, alpha = 0.6) +  # Add jittered points in black
-  labs(x = "Sex", 
-       y = "TraitPE (HBT-IAS)", 
-       title = "Trait-Prediction-Error HBT-IAS (FND vs HC)",
-       fill = "Group") +  # Label for the legend
-  theme_minimal() +
-  scale_fill_manual(values = c("HC" = "#868686FF", "FND" = "#E95248"))+ #custom colors
-  theme(panel.grid = element_blank())  # Remove grid lines
-RRST_sex
-
 # SDQ-metascore
 meta_sdq <- ggplot(df_plot, aes(x = sdq, y = metascore, color = as.factor(group))) +
   geom_point() +  # Scatterplot for both groups
@@ -706,18 +722,19 @@ meta_sdq <- ggplot(df_plot, aes(x = sdq, y = metascore, color = as.factor(group)
   theme(panel.grid = element_blank())  # Remove grid lines
 meta_sdq
 
-# CTQ-metascore
-meta_ctq <- ggplot(df_plot, aes(x = ctq_total, y = metascore, color = as.factor(group))) +
-  geom_point() +  # Scatterplot for both groups
-  geom_smooth(method = "lm", se = TRUE) +  # Add regression lines and SE
-  labs(x = "Experience of Childhood Trauma (CTQ)", 
-       y = "Respiratory Metacognition (AUC)", 
-       title = "Respiratory Interoception (FND vs HC)",
-       color = "Group") +  # Label for the legend
+
+# Sex-RRST_sensitivity
+RRST_sex <- ggplot(df_plot, aes(x = as.factor(sex), y = rrst_sensitivity, fill = as.factor(group))) +
+  geom_boxplot() +  # Create the box plot
+  geom_jitter(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.75), color = "black", size = 1.5, alpha = 0.6) +  # Add jittered points in black
+  labs(x = "Sex", 
+       y = "TraitPE (HBT-IAS)", 
+       title = "Trait-Prediction-Error HBT-IAS (FND vs HC)",
+       fill = "Group") +  # Label for the legend
   theme_minimal() +
-  scale_color_manual(values = c("HC" = "#868686FF", "FND" = "#E95248"))+ #custom colors
+  scale_fill_manual(values = c("HC" = "#868686FF", "FND" = "#E95248"))+ #custom colors
   theme(panel.grid = element_blank())  # Remove grid lines
-meta_ctq
+RRST_sex
 
 # traitPEmaia-Anx-Dep
 traitPEmaia_anxdep <- ggplot(df_plot, aes(x = anx_dep_SUM, y = traitPE_maiaRRST, color = as.factor(group))) +
@@ -739,14 +756,16 @@ After excluding one outlier (FND patient \> 2.5 SD from mean, and outlier in ter
 
 Baseline: FND patients have higher intake of psychotropic medication (p\<0.001), higher BMI (p=0.019), higher Depression (p=4.2e-09) and Anxiety Scores (State: p=4.9e-06, Trait: p=4.1e-04), higher Experience of Childhood Trauma (p=0.0014) and Dissociation (p=1.4e-10) compared to controls.
 
-Interoception: FND patients show to have lower interoceptive sensibility, juding from MAIA questionnaire (p=4.4e-04) and IAS (p=0.018) compared to controls The traitPE of RRST and these two questionnaires did not differ sig between the groups.
+Interoception: FND patients show to have lower interoceptive sensibility, judging from MAIA questionnaire (p=4.4e-04) and IAS (p=0.018) compared to controls The traitPE of RRST and these two questionnaires did not differ sig between the groups.
 
 FND patients have lower interoceptive sensitivity (p=0.032), but no difference in metacognition (p=0.9), compared to controls.
 
-SDQ is associated with GROUP, when controlling for clinical and interoceptive variables (p=0.00147).
+SDQ is correlated with RRST sensitivity (r=-0.37, p-value = 0.00026), with metascore (r= -0.27, p-value = 0.01012), but not with TPE.
 
-Clinical Covariates to include in the model were: Group, Sex, Intake of psychotropic_medication (yes/no), Anxiety/Depression Sum Score, CTQ total score, SDQ-20 score: Male sex (t=2.456, p=0.01616), no intake of psychotropic medication (-2.667, p=0.00921), experience of more childhood trauma (t=2.277, p=0.02541) and lower dissociation (t=-2.894, p=0.00487) is associated with higher RRST sensitivity, when controlling for all other variables. Lower dissociation (t=-2.747, p=0.00739) and with weak evidence also Childhood Trauma (t=1.934, p=0.05651) were associated with higher metascores, when controlling for all other variables. NOTE: the CTQ subscores would not show visually / nor statistically a specific contirbution to the RRST sensitivity or metacognition. The intake of psychotropic medication (t=2.799, p=0.00638) and lower scores in Anxiety/Depression (t=-4.112, p=9.28e-05), and with weak evidence also female sex (t=-1.920, p=0.05831) are associated with higher TraitPrediction Error using RRST-sensitivity and the MAIA questionnaire, when controlling all other variables. The intake of psychotropic medication (t=2.113, p=0.0377) is associated with higher TraitPrediction Error using RRST-sensitivity and the IAS questionnaire, when controlling all other variables.
+RRST sensitivity was associated with SDQ even after controlling for group, sex, anx-dep-sum and psychotropic medication (t= -2.452, p= 0.016307).
+Metascore was associated with SDQ eeven after controlling for group, sex, anx-dep-sum and psychotropic medication (t=-2.389, p=0.019150).
 
-Symptom Severity There is weak evidence, that lower RRST-sensitivity is associated with more positive signs in FND (t=-1.973, p=0.0556).
+The other variables of symptom severity (SFMDRS, CGI) were not associated with RRST sensitivity, nor metacognition.
 
-From the visualization it is apparent that the RRST-Sensitivity & Metacognition in Controls is not dependent on dissociation scores, while for patients they are lower for higher dissociation scores (but note also the larger spread for patients only). While there is no linear association for CTQ and Metacognition, it iseems that for FND only, the more experiences of Childhood Trauma, the higher the metacognitive score. Finally, the Trait-Prediction Error (RRST-MAIA) shows that controls seem to overestimate themselve sin terms of interoceptive performance when scoring low on Anxiety&Depression, while they start to underestimate their performance with higher Anxiety&Depression scores. For FND, this trend is definitely smaller; independent of affective smyptoms, FND patients seem to be closer to a zero in Trait-Prediction Error (using RRST performance and MAIA self report).
+For secondary analysis, if we regress our clinical variables (group, sex, psychotropic medication and anx-dep-sum as an affective score) on interoceptive variables, we see that the intake of psychotropic medication is negatively associated with RRST sensitivity (t=-3.069,0.00289) as well as postiviely with TPE(maia-RRST) (t=3.221, p= 0.001817). A higher TPE(maia-rrst) was further also associated with lower affective symptoms (t=-3.998, p=0.000137)
+
