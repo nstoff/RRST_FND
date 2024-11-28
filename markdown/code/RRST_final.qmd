@@ -286,7 +286,7 @@ library(gtsummary)
 library(dplyr)
 
 # Select relevant columns from df_tbl
-Data.t <- select(df_tbl, c("group", "sex", "age", "psychotropic_medication", "bmi", "bdi", "stai_t", "ctq_total", "sdq"))
+Data.t <- select(df_tbl, c("group", "sex", "age", "psychotropic_medication", "smoke_crf", "bmi", "bdi", "stai_t", "ctq_total", "sdq"))
 
 # Create the summary table
 tbl1 <- Data.t %>%
@@ -297,16 +297,18 @@ tbl1 <- Data.t %>%
       age = "{mean} ({sd})",
       sex = "{n} ({p})",
       psychotropic_medication = "{n} ({p})",
+      smoke_crf = "{n} ({p})",
       bmi = "{median} ({p25}, {p75})",
       bdi = "{median} ({p25}, {p75})",
       stai_t = "{mean} ({sd})",
       ctq_total = "{median} ({p25}, {p75})",
       sdq = "{median} ({p25}, {p75})"
     ),
-    digits = list(age = 1, sex = 1, psychotropic_medication = 1, bmi = 1, bdi = 1, stai_t=1, ctq_total=1, sdq=1),
+    digits = list(age = 1, sex = 1, psychotropic_medication = 1, smoke = 1, bmi = 1, bdi = 1, stai_t=1, ctq_total=1, sdq=1),
     label = list(age = "Age, mean (SD)",
                  sex = "Sex, count (%)",
                  psychotropic_medication= "Intake of psychotropic Medication, count (%)",
+                 smoke_crf = "Smoking, count (%)",
                  bmi = "Body Mass Index kg/m², median (IQR)",
                  bdi = "Depression using BDI-II, median (IQR), ",
                  stai_t = "Trait Anxiety using STAI, median (IQR)",
@@ -321,15 +323,17 @@ tbl1 <- Data.t %>%
         bmi ~ "wilcox.test",            # t-test for bmi
         sex ~ "chisq.test",        # chi-square test for factor variables
         psychotropic_medication ~ "chisq.test",  # Fisher's exact test for small samples
+        smoke_crf ~ "chisq.test",  # Fisher's exact test for small samples
         bdi ~ "wilcox.test",
         stai_t ~ "t.test",
         ctq_total = "wilcox.test",
         sdq="wilcox.test"
-      )) %>% #add p-value# add p-value (in case different variable should be tested differently, create a list and specify like that: add_p(test = list(age = "t.test", bmi = "wilcox.test"))
+      )) %>% 
   add_overall(last = FALSE)
 
 # Display the table
 tbl1
+
 
 ```
 
@@ -733,21 +737,15 @@ traitPEmaia_anxdep
 
 After excluding one outlier (FND patient \> 2.5 SD from mean, and outlier in terms of value, but also in testing the model fit in terms of normality/homoscedasticity of resiudaly) we have N=91.
 
-Baseline: FND patients have higher intake of psychotropic medication (p<0.001), higher BMI (p=0.019), higher Depression (p=4.2e-09) and Anxiety Scores (State: p=4.9e-06, Trait: p=4.1e-04), higher Experience of Childhood Trauma (p=0.0014) and Dissociation (p=1.4e-10) compared to controls.
+Baseline: FND patients have higher intake of psychotropic medication (p\<0.001), higher BMI (p=0.019), higher Depression (p=4.2e-09) and Anxiety Scores (State: p=4.9e-06, Trait: p=4.1e-04), higher Experience of Childhood Trauma (p=0.0014) and Dissociation (p=1.4e-10) compared to controls.
 
-Interoception: 
-FND patients show to have lower interoceptive sensibility, juding from MAIA questionnaire (p=4.4e-04) and IAS (p=0.018) compared to controls The traitPE of RRST and these two questionnaires did not differ sig between the groups.
+Interoception: FND patients show to have lower interoceptive sensibility, juding from MAIA questionnaire (p=4.4e-04) and IAS (p=0.018) compared to controls The traitPE of RRST and these two questionnaires did not differ sig between the groups.
 
 FND patients have lower interoceptive sensitivity (p=0.032), but no difference in metacognition (p=0.9), compared to controls.
 
 SDQ is associated with GROUP, when controlling for clinical and interoceptive variables (p=0.00147).
 
-Clinical Covariates to include in the model were: Group, Sex, Intake of psychotropic_medication (yes/no), Anxiety/Depression Sum Score, CTQ total score, SDQ-20 score:
-Male sex (t=2.456, p=0.01616), no intake of psychotropic medication (-2.667, p=0.00921), experience of more childhood trauma (t=2.277, p=0.02541) and lower dissociation (t=-2.894, p=0.00487) is associated with higher RRST sensitivity, when controlling for all other variables. 
-Lower dissociation (t=-2.747, p=0.00739) and with weak evidence also Childhood Trauma (t=1.934, p=0.05651) were associated with higher metascores, when controlling for all other variables. 
-NOTE: the CTQ subscores would not show visually / nor statistically a specific contirbution to the RRST sensitivity or metacognition. 
-The intake of psychotropic medication (t=2.799, p=0.00638) and lower scores in Anxiety/Depression (t=-4.112, p=9.28e-05), and with weak evidence also female sex (t=-1.920, p=0.05831) are associated with higher TraitPrediction Error using RRST-sensitivity and the MAIA questionnaire, when controlling all other variables. 
-The intake of psychotropic medication (t=2.113, p=0.0377) is associated with higher TraitPrediction Error using RRST-sensitivity and the IAS questionnaire, when controlling all other variables.
+Clinical Covariates to include in the model were: Group, Sex, Intake of psychotropic_medication (yes/no), Anxiety/Depression Sum Score, CTQ total score, SDQ-20 score: Male sex (t=2.456, p=0.01616), no intake of psychotropic medication (-2.667, p=0.00921), experience of more childhood trauma (t=2.277, p=0.02541) and lower dissociation (t=-2.894, p=0.00487) is associated with higher RRST sensitivity, when controlling for all other variables. Lower dissociation (t=-2.747, p=0.00739) and with weak evidence also Childhood Trauma (t=1.934, p=0.05651) were associated with higher metascores, when controlling for all other variables. NOTE: the CTQ subscores would not show visually / nor statistically a specific contirbution to the RRST sensitivity or metacognition. The intake of psychotropic medication (t=2.799, p=0.00638) and lower scores in Anxiety/Depression (t=-4.112, p=9.28e-05), and with weak evidence also female sex (t=-1.920, p=0.05831) are associated with higher TraitPrediction Error using RRST-sensitivity and the MAIA questionnaire, when controlling all other variables. The intake of psychotropic medication (t=2.113, p=0.0377) is associated with higher TraitPrediction Error using RRST-sensitivity and the IAS questionnaire, when controlling all other variables.
 
 Symptom Severity There is weak evidence, that lower RRST-sensitivity is associated with more positive signs in FND (t=-1.973, p=0.0556).
 
