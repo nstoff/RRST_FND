@@ -585,7 +585,7 @@ p_matrix
 ### CGI & SUM_SEVERITY corr: r=0.43742577 , p=0.002985648
 
 ```
-### 3.2.2 ) SDQ (full sample) - sig
+### 3.2.2 ) SDQ (full sample) 
 ```{r}
 #| warning: FALSE
 #| error: FALSE
@@ -593,10 +593,6 @@ p_matrix
 sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + group + sex,
                  data = df) 
 summary(sdq_lm)  # RRST sensitivity and GROUP
-
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + group + anx_dep_SUM,
-                 data = df) 
-summary(sdq_lm)  # RRST sensitivity and GROUP and ANX_DEP ; meaning this assocaition is not due to the differences in affective symptoms 
 
 sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + group + anx_dep_SUM + psychotropic_medication,
                  data = df) 
@@ -607,19 +603,53 @@ sdq_lm <- lm(formula = sdq ~  metascore + group + sex,
                  data = df) 
 summary(sdq_lm)  #  metascore and GROUP
 
-sdq_lm <- lm(formula = sdq ~  metascore + sex + group + anx_dep_SUM,
-                 data = df) 
-summary(sdq_lm)  #  metascore and GROUP and ANX_DEP ; meaning this assocaition is not due to the differences in affective symptoms 
-
 sdq_lm <- lm(formula = sdq ~  metascore + sex + group + anx_dep_SUM + psychotropic_medication,
                  data = df) 
 summary(sdq_lm)  #  metascore and GROUP ; meaning ANX-DEP was maybe due to psychotropic mediation, but the other two assocaitions are not due to the difference of psychotropic medication
 
 ```
-### 3.2.3 ) Symptom Scores (FND only) - no sig
+### 3.2.3 ) Symptom Scores (FND only) 
 ```{r}
 #| warning: FALSE
 #| error: FALSE
+
+#SDQ 
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex,
+                 data = df_FND) 
+summary(sdq_lm)  # RRST sensitivity
+
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + anx_dep_SUM + psychotropic_medication,
+                 data = df_FND) 
+summary(sdq_lm)  # RRST sensitivity still sig ; meaning these association are not due to the difference of psychotropic medication
+
+# SAME FOR HC ? 
+#SDQ 
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex,
+                 data = df_HC) 
+summary(sdq_lm)  # nope
+
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + anx_dep_SUM + psychotropic_medication,
+                 data = df_HC) 
+summary(sdq_lm)  #  only ANX-DEP
+
+#SDQ 
+sdq_lm <- lm(formula = sdq ~  metascore  + sex,
+                 data = df_FND) 
+summary(sdq_lm)  #  metascore 
+
+sdq_lm <- lm(formula = sdq ~  metascore + sex  + anx_dep_SUM + psychotropic_medication,
+                 data = df_FND) 
+summary(sdq_lm)  #  metascore still ; meaning ANX-DEP was maybe due to psychotropic mediation, but the other two assocaitions are not due to the difference of psychotropic medication
+
+# SAME FOR HC?
+#SDQ 
+sdq_lm <- lm(formula = sdq ~  metascore  + sex,
+                 data = df_HC) 
+summary(sdq_lm)  #  nope
+
+sdq_lm <- lm(formula = sdq ~  metascore + sex  + anx_dep_SUM + psychotropic_medication,
+                 data = df_HC) 
+summary(sdq_lm)  #  only ANX-DEP 
 
 #SFMDRS
 sfmdrslm <- lm(formula = sfmdrs ~  rrst_sensitivity + sex,
@@ -764,6 +794,7 @@ SDQ is correlated with RRST sensitivity (r=-0.37, p-value = 0.00026), with metas
 
 RRST sensitivity was associated with SDQ even after controlling for group, sex, anx-dep-sum and psychotropic medication (t= -2.452, p= 0.016307).
 Metascore was associated with SDQ eeven after controlling for group, sex, anx-dep-sum and psychotropic medication (t=-2.389, p=0.019150).
+These associations remained significant also when running the analysis separate for FND only (for SDQ associated with RRST: t = -2.124, p = 0.0401, and respectively with metascore: t = -2.042, p = 0.04798). For HC only, SDQ was not associated anymore with neither RRST sensitivity, nor metascore, but the affective sum score would be associated with the dissociative symptoms displayed in HC only (for SDQ associated with BDI-STAI-sum score: t = 3.45-3.73, p = 0.0006-0.0013)
 
 The other variables of symptom severity (SFMDRS, CGI) were not associated with RRST sensitivity, nor metacognition.
 
