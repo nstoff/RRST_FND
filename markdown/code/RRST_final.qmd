@@ -55,7 +55,6 @@ setwd("~/Documents/GitHub/interoception_NS/output/RRST/11-2024")
 df <- df %>%
   mutate(anx_dep_SUM = stai_t + bdi)# create one variable for the trait anxiety and depression to use as one variable in the model
 
-
 # factor variables
 factor_variables <- c('group', 'sex', 'psychotropic_medication', 'menopause', 'contraception')
 # Apply as.numeric to the selected columns
@@ -77,7 +76,7 @@ df_FND <- df[df$group == "1", ]
 
 ```
 
-## Identifying & Arguing for the Outlier to exclude
+## Identifying the Outlier to exclude
 
 ```{r}
 # Testing Outlier using boxplot (standard deviation)
@@ -141,7 +140,6 @@ p1b <- plotBoxplotGroups(df_exclusion, (df_exclusion$rrst_sensitivity), "Respira
 print(p1b)
 
 p1b
-
 
 # Summary of Change - depending on Exclusion of Outlier
 summary(df$rrst_sensitivity)  # no sig difference between group (cut of 0.05)
@@ -534,10 +532,38 @@ print(cohens_d_maia) # cohens d of -0.786 means with an effect size of 0.786 FND
 
 cohens_d_ias <- calculate_cohens_d(df, "ias", "group", 1, 0) # group 1=FND, group=0 HC
 print(cohens_d_ias) # cohens d of -0.651 means with an effect size of 0.651 FND has LOWER values than HC
+
+cohens_d_bdi <- calculate_cohens_d(df, "bdi", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_bdi) # cohens d of 1.382615 means with an effect size of 1.382615 FND has HIGHER values than HC
+
+cohens_d_stai_t <- calculate_cohens_d(df, "stai_t", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_stai_t) # cohens d of 0.829 means with an effect size of 0.829 FND has HIGHER values than HC
+
+cohens_d_stai_s <- calculate_cohens_d(df, "stai_s", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_stai_s) # cohens d of 1.080 means with an effect size of 1.080 FND has HIGHER values than HC
+
+cohens_d_ctq_total <- calculate_cohens_d(df, "ctq_total", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_ctq_total) # cohens d of 0.662 means with an effect size of 0.662 FND has HIGHER values than HC
+
+cohens_d_sdq <- calculate_cohens_d(df, "sdq", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_sdq) # cohens d of 1.500 means with an effect size of 1.500 FND has HIGHER values than HC
+
+cohens_d_bmi <- calculate_cohens_d(df, "bmi", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_bmi) # cohens d of 0.557 means with an effect size of 0.6621177 FND has HIGHER values than HC
+
+# for binary variable we calcualte the ODDS RATIO
+model <- glm(group ~ psychotropic_medication, data = df, family = binomial)
+summary(model)
+# Extract Odds Ratio
+odds_ratio <- exp(coef(model))
+odds_ratio # OR of 17.42
+
 ```
 
 # 3) Symptom Severity as dependent variables
+
 ## 3.1 ) Correlations
+
 ```{r}
 #| warning: FALSE
 #| error: FALSE
@@ -556,8 +582,11 @@ cor.test(df$traitPE_maiaRRST, df$sdq, method = "pearson")
 #  p-value = 0.9064, cor = -0.01250354 
 
 ```
+
 ## 3.2 ) Regression Analysis for Symptom Severity
+
 ### 3.2.1 ) Different Variables of Symptom Severity
+
 ```{r}
 #| warning: FALSE
 #| error: FALSE
@@ -585,7 +614,9 @@ p_matrix
 ### CGI & SUM_SEVERITY corr: r=0.43742577 , p=0.002985648
 
 ```
-### 3.2.2 ) SDQ (full sample) 
+
+### 3.2.2 ) SDQ (full sample)
+
 ```{r}
 #| warning: FALSE
 #| error: FALSE
@@ -598,6 +629,11 @@ sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + group + anx_dep_SUM + psy
                  data = df) 
 summary(sdq_lm)  # RRST sensitivity and GROUP and ANX_DEP ; meaning these assocaition are not due to the difference of psychotropic medication
 
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + group + anx_dep_SUM + psychotropic_medication + bmi,
+                 data = df) 
+summary(sdq_lm)  # RRST sensitivity and GROUP and ANX-DEP; meaning these assocaition are not due to the difference of psychotropic medication
+
+
 #SDQ 
 sdq_lm <- lm(formula = sdq ~  metascore + group + sex,
                  data = df) 
@@ -607,8 +643,14 @@ sdq_lm <- lm(formula = sdq ~  metascore + sex + group + anx_dep_SUM + psychotrop
                  data = df) 
 summary(sdq_lm)  #  metascore and GROUP ; meaning ANX-DEP was maybe due to psychotropic mediation, but the other two assocaitions are not due to the difference of psychotropic medication
 
+sdq_lm <- lm(formula = sdq ~  metascore + sex + group + anx_dep_SUM + psychotropic_medication + bmi,
+                 data = df) 
+summary(sdq_lm)  #  metascore and GROUP ; meaning ANX-DEP was maybe due to psychotropic mediation, but the other two assocaitions are not due to the difference of psychotropic medication
+
 ```
-### 3.2.3 ) Symptom Scores (FND only) 
+
+### 3.2.3 ) Symptom Scores (FND only)
+
 ```{r}
 #| warning: FALSE
 #| error: FALSE
@@ -693,6 +735,7 @@ summary(sum_pos_lm)  # no sig assocaition
 ```
 
 # 4) Interoception as dependent variable
+
 ### 4.1) Regression Analysis
 
 ```{r}
@@ -701,21 +744,65 @@ lm<-lm(rrst_sensitivity ~ group + sex + psychotropic_medication + anx_dep_SUM,
   data = df)
 summary(lm) # MEDICATION sig associated with RRST-sensitivity
 
+# FND only
+lm<-lm(rrst_sensitivity ~  sex + age + psychotropic_medication + anx_dep_SUM,
+  data = df_FND)
+summary(lm) # no sig
+
+# HC only
+lm<-lm(rrst_sensitivity ~  sex + age + psychotropic_medication + anx_dep_SUM,
+  data = df_HC)
+summary(lm) # no sig
+
+
+
 # predciting  rrst metascore with covariates
 lm<-lm(metascore ~ group + sex + psychotropic_medication + anx_dep_SUM,
   data = df)
 summary(lm)  #  no sig
+
+# FND only
+lm<-lm(metascore ~ age + sex + psychotropic_medication + anx_dep_SUM,
+  data = df_FND)
+summary(lm)  #  no sig
+
+# HC only
+lm<-lm(metascore ~ age + sex + psychotropic_medication + anx_dep_SUM,
+  data = df_HC)
+summary(lm)  #  no sig
+
+
 
 # predciting  traitPE uing RRST and MAIA with covariates
 lm<-lm(traitPE_maiaRRST ~ group + sex + psychotropic_medication + anx_dep_SUM,
   data = df)
 summary(lm) #  MEDICATION and ANX-DEP sum score sig associated with traitPE-maia
 
+# FND only
+lm<-lm(traitPE_maiaRRST ~ age + sex + psychotropic_medication + anx_dep_SUM,
+  data = df_FND)
+summary(lm) #  AGE
+
+# HC only
+lm<-lm(traitPE_maiaRRST ~ age + sex + psychotropic_medication + anx_dep_SUM,
+  data = df_HC)
+summary(lm) #  MEDICATION and ANX-DEP sum score sig associated with traitPE-maia
+
+
 # predciting  traitPE uing RRST and MAIA with covariates
 lm<-lm(traitPE_iasRRST ~ group + sex + psychotropic_medication + anx_dep_SUM,
   data = df)
 summary(lm) #  no sig
 
+# FND only
+lm<-lm(traitPE_iasRRST ~ age + sex + psychotropic_medication + anx_dep_SUM,
+  data = df_FND)
+summary(lm) #  no sig
+
+# HC only
+lm<-lm(traitPE_iasRRST ~ age + sex + psychotropic_medication + anx_dep_SUM,
+  data = df_HC)
+summary(lm) #  no sig
 ```
 
 # 5) Visualization of sig association
@@ -792,11 +879,8 @@ FND patients have lower interoceptive sensitivity (p=0.032), but no difference i
 
 SDQ is correlated with RRST sensitivity (r=-0.37, p-value = 0.00026), with metascore (r= -0.27, p-value = 0.01012), but not with TPE.
 
-RRST sensitivity was associated with SDQ even after controlling for group, sex, anx-dep-sum and psychotropic medication (t= -2.452, p= 0.016307).
-Metascore was associated with SDQ eeven after controlling for group, sex, anx-dep-sum and psychotropic medication (t=-2.389, p=0.019150).
-These associations remained significant also when running the analysis separate for FND only (for SDQ associated with RRST: t = -2.124, p = 0.0401, and respectively with metascore: t = -2.042, p = 0.04798). For HC only, SDQ was not associated anymore with neither RRST sensitivity, nor metascore, but the affective sum score would be associated with the dissociative symptoms displayed in HC only (for SDQ associated with BDI-STAI-sum score: t = 3.45-3.73, p = 0.0006-0.0013)
+RRST sensitivity was associated with SDQ even after controlling for group, sex, anx-dep-sum and psychotropic medication (t= -2.452, p= 0.016307). Metascore was associated with SDQ eeven after controlling for group, sex, anx-dep-sum and psychotropic medication (t=-2.389, p=0.019150). These associations remained significant also when running the analysis separate for FND only (for SDQ associated with RRST: t = -2.124, p = 0.0401, and respectively with metascore: t = -2.042, p = 0.04798). For HC only, SDQ was not associated anymore with neither RRST sensitivity, nor metascore, but the affective sum score would be associated with the dissociative symptoms displayed in HC only (for SDQ associated with BDI-STAI-sum score: t = 3.45-3.73, p = 0.0006-0.0013)
 
 The other variables of symptom severity (SFMDRS, CGI) were not associated with RRST sensitivity, nor metacognition.
 
 For secondary analysis, if we regress our clinical variables (group, sex, psychotropic medication and anx-dep-sum as an affective score) on interoceptive variables, we see that the intake of psychotropic medication is negatively associated with RRST sensitivity (t=-3.069,0.00289) as well as postiviely with TPE(maia-RRST) (t=3.221, p= 0.001817). A higher TPE(maia-rrst) was further also associated with lower affective symptoms (t=-3.998, p=0.000137)
-
