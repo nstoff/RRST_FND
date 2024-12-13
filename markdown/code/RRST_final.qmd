@@ -11,9 +11,7 @@ editor: visual
 
 # 0) Data and Preparation
 
-Respiratory Interoception; Analysis of Site Switzerland
-
-Analysis of participants of site CH from 15.10.23 until 10.09.2024;
+Respiratory Interoception; Analysis of participants of site CH from 15.10.23 until 10.09.2024;
 
 ```{r}
 #| output: false
@@ -45,38 +43,24 @@ setwd("/Users/nataschastoffel/Documents/GitHub/interoception_NS")
 df_RRST <- read_csv("/Users/nataschastoffel/Documents/GitHub/interoception_NS/data/processed/11-2024/Data.RRST_FINAL_20241120.csv")
 df <- df_RRST[-c(1)] # remove additional column 
 
-# excluded_pcodes <- c(14)  # pcodes that we want to exclude due to our exclusion criteria (that they were not able to perform the task adequetely; due to not understanding/performing with a 0.0000 sensitivity)
-# Filter out the rows with the specified pcodes
-# df <- df %>% filter(!pcode %in% excluded_pcodes)
-
-#Set path for output files; working directory to the correct folder
-setwd("~/Documents/GitHub/interoception_NS/output/RRST/11-2024")
-
-df <- df %>%
-  mutate(anx_dep_SUM = stai_t + bdi)# create one variable for the trait anxiety and depression to use as one variable in the model
-
 # factor variables
 factor_variables <- c('group', 'sex', 'psychotropic_medication', 'menopause', 'contraception')
 # Apply as.numeric to the selected columns
 df[factor_variables] <- lapply(df[factor_variables], as.factor)
 
 # numeric variables
-numeric_variables <- c('age', 'bmi', 'bdi', 'stai_s', 'stai_t', 'maia_total', 'anx_dep_SUM',
+numeric_variables <- c('age', 'bmi', 'bdi', 'stai_s', 'stai_t', 'maia_total',
                      'sdq', 'ctq_total', 'ias', 'rrst_sensitivity', 
                      'traitPE_maiaRRST', 'traitPE_iasRRST', 'metascore')
 # Apply as.numeric to the selected columns
 df[numeric_variables] <- lapply(df[numeric_variables], as.numeric)
 
-# define required subgroups
-df_female <- df[df$sex == "1", ]
-df_male <- df[df$sex == "2", ]
-
-df_HC <- df[df$group == "0", ]
-df_FND <- df[df$group == "1", ]
 
 ```
 
-## Identifying the Outlier to exclude
+# 1) Having a Look at the Data 
+
+## 1.1) Identifying the Outlier to exclude
 
 ```{r}
 # Testing Outlier using boxplot (standard deviation)
@@ -124,7 +108,7 @@ filtered_pcodes
 # Testing the Assumptions in the main model (rrst sensitivity predicted by clinical variables) 
 # model:
 lmrrst <- lm(
-  rrst_sensitivity ~ group + sex + bmi + psychotropic_medication + anx_dep_SUM + ctq_total + sdq,
+  rrst_sensitivity ~ group + sex + bmi + psychotropic_medication + stai_t + bdi,
   data = df)
 # testing assumptions
 plot(lmrrst, which=1) # testing the assumptions of Linearity and Homoscedasticity with residuals vs fitted plot: the line should more or less be straight: observation 56 is a clear outlier
@@ -151,7 +135,7 @@ df <- df[df$pcode != "63", ]
 
 ```
 
-# 1) Having a look at the Data
+## 1.2) Testing Distribution of Variables
 
 ```{r}
 #| output: false
@@ -195,7 +179,16 @@ shapiro.test(df$bmi[df$group == "1"]) # within patients bmi is normally distribu
 shapiro.test(df$bmi[df$group == "0"]) # within control bmi is NOT normally distributed with p < 0.05
 
 
-## 1.1 testing co-dependency of variables by creating a correlation matrix -----
+```
+
+## 1.3) Testing Collinearity of Variables
+
+```{r}
+#| output: false
+#| warning: FALSE
+#| error: FALSE
+
+## testing co-dependency of variables by creating a correlation matrix -----
 # in order to run a correlation, all variables must be numeric (but we create new variables, so it wont mess with our variables that we defiend as factors)
 corr_matrix <- cor(df[, c("age","bmi", "bdi", "stai_s", "stai_t", "ctq_total",
                           "ias", "maia_total", "sdq", "rrst_sensitivity", 
@@ -216,7 +209,19 @@ high_corr_pairs <- data.frame(
 
 # View the pairs
 print(high_corr_pairs) # stai and bdi are highly correlated, which we do accept though as this is a common clinical happening
-cor.test(df$bdi, df$stai_t) # reason for using sum scores
+cor.test(df$bdi, df$stai_t) #
+
+df <- df %>%
+  mutate(anx_dep_SUM = stai_t + bdi)# create one variable for the trait anxiety and depression to use as one variable in the model
+
+```
+
+# 2) Group Differences
+
+```{r}
+#| output: false
+#| warning: FALSE
+#| error: FALSE
 
 ### 1.2 Group Differences as Baseline of Variables of Interst ---------------------------------------------
 # parametric t-test for NORMALLY distributed data
@@ -251,11 +256,19 @@ res # no sig difference between groups
 
 ```
 
-## Demographic Summary Table
+## 2.1) Demographic Summary Table
 
 ```{r}
 #| warning: FALSE
 #| error: FALSE
+
+# define required subgroups
+df_female <- df[df$sex == "1", ]
+df_male <- df[df$sex == "2", ]
+
+df_HC <- df[df$group == "0", ]
+df_FND <- df[df$group == "1", ]
+
 
 # overview across group and sex distribution
 tbl <- df %>%
@@ -335,7 +348,7 @@ tbl1
 
 ```
 
-## FND Summary Table
+## 2.2) FND Summary Table
 
 ```{r}
 #| warning: FALSE
@@ -392,7 +405,7 @@ tbl <- Data.t %>%
 tbl
 ```
 
-# 2) Group Differences - Baseline
+## 2.3) Visualization of Group Differences
 
 Here we visualize the different distribution per group across all variables
 
@@ -615,37 +628,41 @@ p_matrix
 
 ```
 
-### 3.2.2 ) SDQ (full sample)
+### 3.2.2 ) SDQ (separate per group)
 
 ```{r}
 #| warning: FALSE
 #| error: FALSE
-#SDQ 
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + group + sex,
-                 data = df) 
-summary(sdq_lm)  # RRST sensitivity and GROUP
+#SDQ - RRST sensitviity
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex,
+                 data = df_FND) 
+summary(sdq_lm)  # RRST sensitivity
 
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + group + anx_dep_SUM + psychotropic_medication,
-                 data = df) 
-summary(sdq_lm)  # RRST sensitivity and GROUP and ANX_DEP ; meaning these assocaition are not due to the difference of psychotropic medication
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + anx_dep_SUM + psychotropic_medication + bmi,
+                 data = df_FND) 
+summary(sdq_lm)  # RRST sensitivity ; after controling for covariates of no-interst
 
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + group + anx_dep_SUM + psychotropic_medication + bmi,
-                 data = df) 
-summary(sdq_lm)  # RRST sensitivity and GROUP and ANX-DEP; meaning these assocaition are not due to the difference of psychotropic medication
+# SAME FOR HC ? 
+#SDQ - RRST sensitviity
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex,
+                 data = df_HC) 
+summary(sdq_lm)  # no sig association
 
+#SDQ - metascore
+sdq_lm <- lm(formula = sdq ~  metascore  + sex,
+                 data = df_FND) 
+summary(sdq_lm)  #  metascore 
 
-#SDQ 
-sdq_lm <- lm(formula = sdq ~  metascore + group + sex,
-                 data = df) 
-summary(sdq_lm)  #  metascore and GROUP
+sdq_lm <- lm(formula = sdq ~  metascore + sex  + anx_dep_SUM + psychotropic_medication + bmi,
+                 data = df_FND) 
+summary(sdq_lm)  #  metascore still sig after controlling for covariates of no-interst
 
-sdq_lm <- lm(formula = sdq ~  metascore + sex + group + anx_dep_SUM + psychotropic_medication,
-                 data = df) 
-summary(sdq_lm)  #  metascore and GROUP ; meaning ANX-DEP was maybe due to psychotropic mediation, but the other two assocaitions are not due to the difference of psychotropic medication
+# SAME FOR HC?
+#SDQ - metascore
+sdq_lm <- lm(formula = sdq ~  metascore  + sex,
+                 data = df_HC) 
+summary(sdq_lm)  # no sig association
 
-sdq_lm <- lm(formula = sdq ~  metascore + sex + group + anx_dep_SUM + psychotropic_medication + bmi,
-                 data = df) 
-summary(sdq_lm)  #  metascore and GROUP ; meaning ANX-DEP was maybe due to psychotropic mediation, but the other two assocaitions are not due to the difference of psychotropic medication
 
 ```
 
@@ -655,80 +672,45 @@ summary(sdq_lm)  #  metascore and GROUP ; meaning ANX-DEP was maybe due to psych
 #| warning: FALSE
 #| error: FALSE
 
-#SDQ 
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex,
-                 data = df_FND) 
-summary(sdq_lm)  # RRST sensitivity
-
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + anx_dep_SUM + psychotropic_medication,
-                 data = df_FND) 
-summary(sdq_lm)  # RRST sensitivity still sig ; meaning these association are not due to the difference of psychotropic medication
-
-# SAME FOR HC ? 
-#SDQ 
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex,
-                 data = df_HC) 
-summary(sdq_lm)  # nope
-
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + anx_dep_SUM + psychotropic_medication,
-                 data = df_HC) 
-summary(sdq_lm)  #  only ANX-DEP
-
-#SDQ 
-sdq_lm <- lm(formula = sdq ~  metascore  + sex,
-                 data = df_FND) 
-summary(sdq_lm)  #  metascore 
-
-sdq_lm <- lm(formula = sdq ~  metascore + sex  + anx_dep_SUM + psychotropic_medication,
-                 data = df_FND) 
-summary(sdq_lm)  #  metascore still ; meaning ANX-DEP was maybe due to psychotropic mediation, but the other two assocaitions are not due to the difference of psychotropic medication
-
-# SAME FOR HC?
-#SDQ 
-sdq_lm <- lm(formula = sdq ~  metascore  + sex,
-                 data = df_HC) 
-summary(sdq_lm)  #  nope
-
-sdq_lm <- lm(formula = sdq ~  metascore + sex  + anx_dep_SUM + psychotropic_medication,
-                 data = df_HC) 
-summary(sdq_lm)  #  only ANX-DEP 
-
-#SFMDRS
+#SFMDRS - RRST sensitvity
 sfmdrslm <- lm(formula = sfmdrs ~  rrst_sensitivity + sex,
                data = df_FND) 
 summary(sfmdrslm)   # no sig association
 
-#SFMDRS
+
+#SFMDRS - metascore
 sfmdrslm <- lm(formula = sfmdrs ~  metascore + sex,
                data = df_FND) 
 summary(sfmdrslm)   # no sig association
 
-#CGI
+#CGI - RRST sensitivity
 cgilm <- lm(formula = cgi ~  rrst_sensitivity + sex,
             data = df_FND) 
 summary(cgilm) # no sig association
 
-#CGI
+
+#CGI- metascore
 cgilm <- lm(formula = cgi ~  metascore + sex,
             data = df_FND) 
 summary(cgilm) # no sig association
 
-#Sum score pos signs  (pos signs like wekaness in deltoid/stenocleido etc, co-contractions, give way weakness, hoover, hyposensitivity)
+# Sum score pos signs  (pos signs like wekaness in deltoid/stenocleido etc, co-contractions, give way weakness, hoover, hyposensitivity) - RRST sensitivity
 sum_pos_lm <- lm(formula = sum_positive_signs ~  rrst_sensitivity + sex,
                  data = df_FND) 
 summary(sum_pos_lm)   # no sig assocaition
 
-#Sum score pos signs  
+#Sum score pos signs  - metascore
 sum_pos_lm <- lm(formula = sum_positive_signs ~  metascore + sex,
                  data = df_FND) 
 summary(sum_pos_lm)   # no sig assocaition
 
-#Sum score severity (motor weakness and seizure frequency)
+
+#Sum score severity (motor weakness and seizure frequency) - RRST sensitivity
 sum_pos_lm <- lm(formula = sum_severity ~  rrst_sensitivity + sex,
                  data = df_FND) 
 summary(sum_pos_lm)  # no sig assocaition
 
-#Sum score severity 
+#Sum score severity - metascore
 sum_pos_lm <- lm(formula = sum_severity ~  metascore + sex,
                  data = df_FND) 
 summary(sum_pos_lm)  # no sig assocaition
@@ -736,71 +718,56 @@ summary(sum_pos_lm)  # no sig assocaition
 
 # 4) Interoception as dependent variable
 
-### 4.1) Regression Analysis
+### 4.1) Regression Analysis - separate per group
 
 ```{r}
-# predciting rrst sensitvity with covariates
-lm<-lm(rrst_sensitivity ~ group + sex + psychotropic_medication + anx_dep_SUM,
-  data = df)
-summary(lm) # MEDICATION sig associated with RRST-sensitivity
-
+# predciting rrst sensitvity with covariates,
 # FND only
-lm<-lm(rrst_sensitivity ~  sex + age + psychotropic_medication + anx_dep_SUM,
+lm<-lm(rrst_sensitivity ~  sex + age + psychotropic_medication + anx_dep_SUM + bmi,
   data = df_FND)
 summary(lm) # no sig
 
 # HC only
-lm<-lm(rrst_sensitivity ~  sex + age + psychotropic_medication + anx_dep_SUM,
+lm<-lm(rrst_sensitivity ~  sex + age + psychotropic_medication + anx_dep_SUM + bmi,
   data = df_HC)
 summary(lm) # no sig
-
-
 
 # predciting  rrst metascore with covariates
-lm<-lm(metascore ~ group + sex + psychotropic_medication + anx_dep_SUM,
+lm<-lm(metascore ~ group + sex + psychotropic_medication + anx_dep_SUM + bmi,
   data = df)
 summary(lm)  #  no sig
 
 # FND only
-lm<-lm(metascore ~ age + sex + psychotropic_medication + anx_dep_SUM,
+lm<-lm(metascore ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
   data = df_FND)
 summary(lm)  #  no sig
 
 # HC only
-lm<-lm(metascore ~ age + sex + psychotropic_medication + anx_dep_SUM,
+lm<-lm(metascore ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
   data = df_HC)
 summary(lm)  #  no sig
-
 
 
 # predciting  traitPE uing RRST and MAIA with covariates
-lm<-lm(traitPE_maiaRRST ~ group + sex + psychotropic_medication + anx_dep_SUM,
-  data = df)
-summary(lm) #  MEDICATION and ANX-DEP sum score sig associated with traitPE-maia
-
 # FND only
-lm<-lm(traitPE_maiaRRST ~ age + sex + psychotropic_medication + anx_dep_SUM,
+lm<-lm(traitPE_maiaRRST ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
   data = df_FND)
 summary(lm) #  AGE
 
 # HC only
-lm<-lm(traitPE_maiaRRST ~ age + sex + psychotropic_medication + anx_dep_SUM,
+lm<-lm(traitPE_maiaRRST ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
   data = df_HC)
 summary(lm) #  MEDICATION and ANX-DEP sum score sig associated with traitPE-maia
 
 
 # predciting  traitPE uing RRST and MAIA with covariates
-lm<-lm(traitPE_iasRRST ~ group + sex + psychotropic_medication + anx_dep_SUM,
-  data = df)
-summary(lm) #  no sig
-
 # FND only
-lm<-lm(traitPE_iasRRST ~ age + sex + psychotropic_medication + anx_dep_SUM,
+lm<-lm(traitPE_iasRRST ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
   data = df_FND)
 summary(lm) #  no sig
 
 # HC only
-lm<-lm(traitPE_iasRRST ~ age + sex + psychotropic_medication + anx_dep_SUM,
+lm<-lm(traitPE_iasRRST ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
   data = df_HC)
 summary(lm) #  no sig
 ```
