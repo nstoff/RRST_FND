@@ -115,7 +115,7 @@ plot(lmrrst, which=1) # testing the assumptions of Linearity and Homoscedasticit
 plot(lmrrst, which=2) # testing the assumptions normality of residuals with  standardized quantiles: the data points should more or less on the line: observation 56 is a clear outlier (not as extreme but also noted: 81, 65)
 plot(lmrrst, which=3) # testing the assumption of homoscedasticity with scale-location plot--> if there is an incline then we should consider log transformation: observation 56 is a clear outlier (not as extreme but also noted: 81, 65)
 plot(lmrrst, which=5) # testing leverage and influence = when an outlier has a lot of leverage over the regression line (high leverage & large residual; these points will lie close to the right top or bottom corners): observation 56 is a clear outlier (not as extreme but also noted: 81, 6)
-# observation 56 (consistent outlier) = P063
+ # observation 56 (consistent outlier) = P063
 
 df_exclusion <- df[df$pcode != "63", ]
 
@@ -634,32 +634,44 @@ p_matrix
 #| warning: FALSE
 #| error: FALSE
 #SDQ - RRST sensitviity
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex,
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + age,
                  data = df_FND) 
 summary(sdq_lm)  # RRST sensitivity
 
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + anx_dep_SUM + psychotropic_medication + bmi,
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + age + psychotropic_medication + bmi,
                  data = df_FND) 
 summary(sdq_lm)  # RRST sensitivity ; after controling for covariates of no-interst
 
+sdq_lm_affective <- lm(formula = sdq ~  rrst_sensitivity + sex + age + psychotropic_medication + bmi + anx_dep_SUM,
+                 data = df_FND) 
+summary(sdq_lm_affective)  # also including affective score as covariate of no interest
+
+
 # SAME FOR HC ? 
 #SDQ - RRST sensitviity
-sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex,
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + age,
                  data = df_HC) 
 summary(sdq_lm)  # no sig association
 
+
+
 #SDQ - metascore
-sdq_lm <- lm(formula = sdq ~  metascore  + sex,
+sdq_lm <- lm(formula = sdq ~  metascore  + sex + age,
                  data = df_FND) 
 summary(sdq_lm)  #  metascore 
 
-sdq_lm <- lm(formula = sdq ~  metascore + sex  + anx_dep_SUM + psychotropic_medication + bmi,
+sdq_lm <- lm(formula = sdq ~  metascore + sex  + age + psychotropic_medication + bmi,
                  data = df_FND) 
 summary(sdq_lm)  #  metascore still sig after controlling for covariates of no-interst
 
+
+sdq_lm_affective <- lm(formula = sdq ~  metascore + sex + age + anx_dep_SUM + psychotropic_medication + bmi,
+                 data = df_FND) 
+summary(sdq_lm_affective)  # also including affective score as covariate of no interest
+
 # SAME FOR HC?
 #SDQ - metascore
-sdq_lm <- lm(formula = sdq ~  metascore  + sex,
+sdq_lm <- lm(formula = sdq ~  metascore  + sex + age,
                  data = df_HC) 
 summary(sdq_lm)  # no sig association
 
@@ -673,106 +685,81 @@ summary(sdq_lm)  # no sig association
 #| error: FALSE
 
 #SFMDRS - RRST sensitvity
-sfmdrslm <- lm(formula = sfmdrs ~  rrst_sensitivity + sex,
+sfmdrslm <- lm(formula = sfmdrs ~  rrst_sensitivity + sex + age,
                data = df_FND) 
 summary(sfmdrslm)   # no sig association
 
 
 #SFMDRS - metascore
-sfmdrslm <- lm(formula = sfmdrs ~  metascore + sex,
+sfmdrslm <- lm(formula = sfmdrs ~  metascore + sex + age,
                data = df_FND) 
 summary(sfmdrslm)   # no sig association
 
 #CGI - RRST sensitivity
-cgilm <- lm(formula = cgi ~  rrst_sensitivity + sex,
+cgilm <- lm(formula = cgi ~  rrst_sensitivity + sex + age,
             data = df_FND) 
 summary(cgilm) # no sig association
 
 
 #CGI- metascore
-cgilm <- lm(formula = cgi ~  metascore + sex,
+cgilm <- lm(formula = cgi ~  metascore + sex + age,
             data = df_FND) 
 summary(cgilm) # no sig association
 
 # Sum score pos signs  (pos signs like wekaness in deltoid/stenocleido etc, co-contractions, give way weakness, hoover, hyposensitivity) - RRST sensitivity
-sum_pos_lm <- lm(formula = sum_positive_signs ~  rrst_sensitivity + sex,
+sum_pos_lm <- lm(formula = sum_positive_signs ~  rrst_sensitivity + sex + age,
                  data = df_FND) 
 summary(sum_pos_lm)   # no sig assocaition
 
 #Sum score pos signs  - metascore
-sum_pos_lm <- lm(formula = sum_positive_signs ~  metascore + sex,
+sum_pos_lm <- lm(formula = sum_positive_signs ~  metascore + sex + age,
                  data = df_FND) 
 summary(sum_pos_lm)   # no sig assocaition
 
 
 #Sum score severity (motor weakness and seizure frequency) - RRST sensitivity
-sum_pos_lm <- lm(formula = sum_severity ~  rrst_sensitivity + sex,
+sum_pos_lm <- lm(formula = sum_severity ~  rrst_sensitivity + sex + age,
                  data = df_FND) 
 summary(sum_pos_lm)  # no sig assocaition
 
 #Sum score severity - metascore
-sum_pos_lm <- lm(formula = sum_severity ~  metascore + sex,
+sum_pos_lm <- lm(formula = sum_severity ~  metascore + sex + age,
                  data = df_FND) 
 summary(sum_pos_lm)  # no sig assocaition
 ```
 
-# 4) Interoception as dependent variable
+# 4) SUPPLEMENTARY ANALYSIS: Interoception as dependent variable
 
 ### 4.1) Regression Analysis - separate per group
 
 ```{r}
 # predciting rrst sensitvity with covariates,
-# FND only
-lm<-lm(rrst_sensitivity ~  sex + age + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_FND)
-summary(lm) # no sig
 
-# HC only
-lm<-lm(rrst_sensitivity ~  sex + age + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_HC)
-summary(lm) # no sig
+lm<-lm(rrst_sensitivity ~  group + sex + age + psychotropic_medication + anx_dep_SUM + bmi,
+  data = df)
+summary(lm)
 
 # predciting  rrst metascore with covariates
-lm<-lm(metascore ~ group + sex + psychotropic_medication + anx_dep_SUM + bmi,
+lm<-lm(metascore ~ group + sex + age + psychotropic_medication + anx_dep_SUM + bmi,
   data = df)
-summary(lm)  #  no sig
-
-# FND only
-lm<-lm(metascore ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_FND)
-summary(lm)  #  no sig
-
-# HC only
-lm<-lm(metascore ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_HC)
-summary(lm)  #  no sig
+summary(lm)  
 
 
 # predciting  traitPE uing RRST and MAIA with covariates
-# FND only
-lm<-lm(traitPE_maiaRRST ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_FND)
-summary(lm) #  AGE
-
-# HC only
-lm<-lm(traitPE_maiaRRST ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_HC)
-summary(lm) #  MEDICATION and ANX-DEP sum score sig associated with traitPE-maia
-
+lm<-lm(traitPE_maiaRRST ~ group + age + sex + psychotropic_medication + anx_dep_SUM + bmi,
+  data = df)
+summary(lm)
 
 # predciting  traitPE uing RRST and MAIA with covariates
-# FND only
-lm<-lm(traitPE_iasRRST ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_FND)
-summary(lm) #  no sig
 
-# HC only
-lm<-lm(traitPE_iasRRST ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_HC)
-summary(lm) #  no sig
+lm<-lm(traitPE_iasRRST ~ group + age + sex + psychotropic_medication + anx_dep_SUM + bmi,
+  data = df)
+summary(lm) 
+
+
 ```
 
-# 5) Visualization of sig association
+## 4.2) Visualization of sig association
 
 ```{r}
 df_plot <- df %>%
