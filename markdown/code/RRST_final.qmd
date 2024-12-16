@@ -626,6 +626,9 @@ p_matrix
 ### SDQ & SUM_POS corr: r=0.4738588, p=1.157504e-03
 ### CGI & SUM_SEVERITY corr: r=0.43742577 , p=0.002985648
 
+cor.test(df$bmi, df$rrst_sensitivity)
+# rrst sensitivity and BMI are NOT correlated (-0.02, p=0.82)
+
 ```
 
 ### 3.2.2 A) SDQ (separate per group)
@@ -633,9 +636,6 @@ p_matrix
 ```{r}
 #| warning: FALSE
 #| error: FALSE
-cor.test(df$bmi, df$rrst_sensitivity)
-# rrst sensitivity and BMI are NOT correlated (-0.02, p=0.82)
-
 
 #SDQ - RRST sensitviity
 sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + age,
