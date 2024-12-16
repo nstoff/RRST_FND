@@ -126,9 +126,9 @@ print(p1b)
 p1b
 
 # Summary of Change - depending on Exclusion of Outlier
-summary(df$rrst_sensitivity)  # no sig difference between group (cut of 0.05)
-summary(df_exclusion$rrst_sensitivity) # sig difference between group (cut of 0.05)
-
+summary(df$rrst_sensitivity) 
+summary(df_exclusion$rrst_sensitivity) 
+??summary
 # for statistical reasons we EXCLUDE P063 from the dataset
 df <- df[df$pcode != "63", ]
 
@@ -633,6 +633,10 @@ p_matrix
 ```{r}
 #| warning: FALSE
 #| error: FALSE
+cor.test(df$bmi, df$rrst_sensitivity)
+# rrst sensitivity and BMI are NOT correlated (-0.02, p=0.82)
+
+
 #SDQ - RRST sensitviity
 sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + age,
                  data = df_FND) 
@@ -652,6 +656,32 @@ summary(sdq_lm_affective)  # also including affective score as covariate of no i
 sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + age,
                  data = df_HC) 
 summary(sdq_lm)  # no sig association
+
+### ALTERNATIVELY: RUNNING SDQ FOR FULL MODELL
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + age,
+                 data = df) 
+summary(sdq_lm)  # SIG for RRST sensitivity (and)
+
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + sex + age + psychotropic_medication + bmi,
+                 data = df) 
+summary(sdq_lm)  # RRST sensitivity ; after controling for covariates of no-interst SURVIVES CORRECTION 
+
+sdq_lm_affective <- lm(formula = sdq ~  rrst_sensitivity + sex + age + psychotropic_medication + bmi + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm_affective)  # RRST sensitivity ; secondary, also controlling for AFFECTIVE symptoms: rrst effect remains !
+
+### RUNNING SDQ FOR FULL MODEL - INCLUDING GROUP AS FACTOR
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + group + sex + age,
+                 data = df) 
+summary(sdq_lm)  # SIG for RRST sensitivity
+
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + group + sex + age + psychotropic_medication + bmi,
+                 data = df) 
+summary(sdq_lm)  # only trend for RRST (0.06), and sig for GROUP and medication
+
+sdq_lm_affective <- lm(formula = sdq ~  rrst_sensitivity + group + sex + age + psychotropic_medication + bmi + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm_affective)  # when contorlling further for affective symptoms, RRST sensitivity again sig associated with SDQ (important to control for affective symptoms when including group as a variable)
 
 
 
