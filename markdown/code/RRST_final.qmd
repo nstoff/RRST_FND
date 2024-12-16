@@ -706,6 +706,35 @@ sdq_lm <- lm(formula = sdq ~  metascore  + sex + age,
 summary(sdq_lm)  # no sig association
 
 
+### ALTERNATIVELY: RUNNING SDQ FOR FULL MODELL
+sdq_lm <- lm(formula = sdq ~  metascore + sex + age,
+                 data = df) 
+summary(sdq_lm)  # SIG
+
+sdq_lm <- lm(formula = sdq ~  metascore + sex + age + psychotropic_medication + bmi,
+                 data = df) 
+summary(sdq_lm)  # still SIG; after controling for covariates of no-interst SURVIVES CORRECTION 
+
+sdq_lm_affective <- lm(formula = sdq ~  metascore + sex + age + psychotropic_medication + bmi + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm_affective)  # still SIG; after controling for covariates of no-interst SURVIVES CORRECTION 
+
+
+### RUNNING SDQ FOR FULL MODEL - INCLUDING GROUP AS FACTOR
+sdq_lm <- lm(formula = sdq ~  metascore + group + sex + age,
+                 data = df) 
+summary(sdq_lm)  # SIG for metascore
+
+sdq_lm <- lm(formula = sdq ~  metascore + group + sex + age + psychotropic_medication + bmi,
+                 data = df) 
+summary(sdq_lm)   # SIG for metascore after controlling for covariates
+
+sdq_lm_affective <- lm(formula = sdq ~  metascore + group + sex + age + psychotropic_medication + bmi + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm_affective)   # still SIG for metascore after controlling for covariates including affective symptoms
+
+
+
 ```
 
 ### 3.2.3 ) Symptom Scores (FND only)
