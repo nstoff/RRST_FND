@@ -414,7 +414,24 @@ Here we visualize the different distribution per group across all variables
 #| error: FALSE
 df$group <- as.factor(df$group)
 
-plotViolinGroups <- function(df, var , tit ){ 
+# plot function for  normally dsitributed data, allowing the use of the t test (and the mean)
+plotViolinGroups_mean <- function(df, var , tit ){ 
+  plot <-ggplot(df, aes(x=group, y=var, fill=group)) + # this is just the ground structure. We have group on x axis, our variable score on y, and we want to seperate the groups. 
+    geom_violin(show.legend = FALSE, width = 0.7, trim = FALSE, alpha = 0.8)+ # here we say what kind of plot we want to make; namely violin to show the distrubition of the original data (width to make it less wide and thus prettier) 
+    stat_summary(show.legend = FALSE, fun = mean, geom = "point", color = "black", size = 2) +  # Add median point without legend
+    labs(y = "Score") + # These are just the different titles
+    theme_classic()+ # here we have the background, simple white :)
+    scale_fill_manual(values = c("#868686FF", "#BB4038"))+ # google HEX codes and find your own colours. 
+    scale_x_discrete(labels=c("Controls", "Patients"))+  # these are our labels for the x axis
+    guides(fill=guide_legend(title="Timepoint"))+ # and a title for our legend
+    ggtitle(tit) +
+    xlab("")
+  
+  return(plot)
+}
+
+# plot function for non normally dsitributed data, requireing the wilcox test (and the median)
+plotViolinGroups_median <- function(df, var , tit ){ 
   plot <-ggplot(df, aes(x=group, y=var, fill=group)) + # this is just the ground structure. We have group on x axis, our variable score on y, and we want to seperate the groups. 
     geom_violin(show.legend = FALSE, width = 0.7, trim = FALSE, alpha = 0.8)+ # here we say what kind of plot we want to make; namely violin to show the distrubition of the original data (width to make it less wide and thus prettier) 
     stat_summary(show.legend = FALSE, fun = median, geom = "point", color = "black", size = 2) +  # Add median point without legend
@@ -428,38 +445,37 @@ plotViolinGroups <- function(df, var , tit ){
   
   return(plot)
 }
-
-p1 <- plotViolinGroups(df,df$bdi,"BDI - Depression")+ ggpubr::stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p1 <- plotViolinGroups_median(df,df$bdi,"BDI - Depression")+ ggpubr::stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 p1
 
 
-p2 <- plotViolinGroups(df,df$stai_s,"STAI - State Anxiety")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
-p3 <- plotViolinGroups(df,df$stai_t,"STAI - Trait Anxiety")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p2 <- plotViolinGroups_mean(df,df$stai_s,"STAI - State Anxiety")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+p3 <- plotViolinGroups_median(df,df$stai_t,"STAI - Trait Anxiety")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 gridExtra::grid.arrange(p2, p3, ncol = 2)
 
 
-p4 <- plotViolinGroups(df,df$ctq_total,"CTQ - Childhood Trauma")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p4 <- plotViolinGroups_median(df,df$ctq_total,"CTQ - Childhood Trauma")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 p4
 
-p5 <- plotViolinGroups(df,df$sdq,"SDQ-20 - Dissociation")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p5 <- plotViolinGroups_median(df,df$sdq,"SDQ-20 - Dissociation")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 p5
 
 
-p6 <- plotViolinGroups(df,df$maia_total,"MAIA - Interoceptive Awareness")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+p6 <- plotViolinGroups_mean(df,df$maia_total,"MAIA - Interoceptive Awareness")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
 p6
 
 
-p7 <- plotViolinGroups(df,df$ias,"IAS - Interoceptive Accuracy")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p7 <- plotViolinGroups_median(df,df$ias,"IAS - Interoceptive Accuracy")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 p7
 
 
-p8 <- plotViolinGroups(df,df$traitPE_maiaRRST,"TraitPE MAIA-RRST")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
-p9 <- plotViolinGroups(df,df$traitPE_iasRRST,"TraitPE IAS-RRST")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+p8 <- plotViolinGroups_mean(df,df$traitPE_maiaRRST,"TraitPE MAIA-RRST")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+p9 <- plotViolinGroups_mean(df,df$traitPE_iasRRST,"TraitPE IAS-RRST")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
 gridExtra::grid.arrange(p8, p9, ncol = 2)
 
 
-p10 <- plotViolinGroups(df,df$rrst_sensitivity,"Respiratory Sensitivity")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
-p11 <- plotViolinGroups(df,df$metascore,"Respiratory Metacognition")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p10 <- plotViolinGroups_mean(df,df$rrst_sensitivity,"Respiratory Sensitivity")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+p11 <- plotViolinGroups_median(df,df$metascore,"Respiratory Metacognition")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 gridExtra::grid.arrange(p10, p11, ncol = 2)
 
 
@@ -585,18 +601,79 @@ odds_ratio # OR of 17.42
 cor.test(df$rrst_sensitivity, df$sdq, method = "pearson") 
  # p-value = 0.0002628,  cor = -0.3737694 
 
+# separate per group
+cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson") # r = -0.3828185, p-value = 0.01129
+cor.test(df_HC$rrst_sensitivity, df_HC$sdq, method = "pearson") 
+
 cor.test(df$metascore, df$sdq, method = "pearson")  
 # p-value = 0.01012, cor = -0.2683359 
 
+# separate per group
+cor.test(df_FND$metascore, df_FND$sdq, method = "pearson")  # r = -0.36099, p-value = 0.0174
+cor.test(df_HC$metascore, df_HC$sdq, method = "pearson")  
+
+
 cor.test(df$traitPE_iasRRST, df$sdq, method = "pearson") 
 # p-value = 0.470, cor= -0.07664066 
+# separate per group
+cor.test(df_FND$traitPE_iasRRST, df_FND$sdq, method = "pearson")  
+cor.test(df_HC$traitPE_iasRRST, df_HC$sdq, method = "pearson")  
+
 
 cor.test(df$traitPE_maiaRRST, df$sdq, method = "pearson") 
 #  p-value = 0.9064, cor = -0.01250354 
+# separate per group
+cor.test(df_FND$traitPE_maiaRRST, df_FND$sdq, method = "pearson")  
+cor.test(df_HC$traitPE_maiaRRST, df_HC$sdq, method = "pearson")  
+
 
 ```
 
 ## 3.2 ) Regression Analysis for Symptom Severity
+We identified SDQ to be correlated with RRST sensitivity and metacognition in the FND population only. 
+
+Next, we need to identify which covariates will be included in our linear regression (separate per group) to test whether these correlation survive also the control for these covariates. To do so, we choose those variables that are both theoretically but also statistically correlated with both the predictor (RRST sensitivity and metacognition in our case) and the outcome variable (SDQ in our case). 
+
+```{r}
+
+# does age need to be a covariate in the model ?
+cor.test(df_FND$age, df_FND$rrst_sensitivity, method = "pearson") 
+cor.test(df_FND$age, df_FND$metascore, method = "pearson") 
+cor.test(df_FND$age, df_FND$sdq, method = "pearson") 
+
+# does bmi need to be a covariate in the model?
+cor.test(df_FND$bmi, df_FND$rrst_sensitivity, method = "pearson") 
+cor.test(df_FND$bmi, df_FND$metascore, method = "pearson") 
+cor.test(df_FND$bmi, df_FND$sdq, method = "pearson") 
+
+# does anx_dep_sum need to be a covariate in the model?
+cor.test(df_FND$anx_dep_SUM, df_FND$rrst_sensitivity, method = "pearson") 
+cor.test(df_FND$anx_dep_SUM, df_FND$metascore, method = "pearson") 
+cor.test(df_FND$anx_dep_SUM, df_FND$sdq, method = "pearson") # trend with r= 0.294215, p-value = 0.05548
+
+# does medication need to be a covariate in the model?
+res<-t.test(df_FND$rrst_sensitivity[df_FND$psychotropic_medication == "1"], df_FND$rrst_sensitivity[df_FND$psychotropic_medication=="0"])
+res # sig difference across groups with or without intake of psychotropic medicatioN: t = -2.1273, p-value = 0.04011
+
+res<-t.test(df_FND$metascore[df_FND$psychotropic_medication == "1"], df_FND$metascore[df_FND$psychotropic_medication=="0"])
+res # 
+
+res<-t.test(df_FND$sdq[df_FND$psychotropic_medication == "1"], df_FND$sdq[df_FND$psychotropic_medication=="0"])
+res # sig difference across groups with or without intake of psychotropic medication: t = 2.6337, p-value = 0.0129
+
+
+# differences of sex in our predictor and outcome variable?
+res<-t.test(df_FND$rrst_sensitivity[df_FND$sex=="1"], df_FND$rrst_sensitivity[df_FND$sex=="2"])
+res # 
+
+res<-t.test(df_FND$metascore[df_FND$sex=="1"], df_FND$metascore[df_FND$sex=="2"])
+res # 
+
+res<-t.test(df_FND$sdq[df_FND$sex=="1"], df_FND$sdq[df_FND$sex=="2"])
+res # 
+```
+Seeing that the intake of psychotropic medication is both correlated to our outcome and predictor variables, we have to include this in our linear regression. For the others (sex, age, bmi) we do not have to include those, as they are not statistically correlated to both variables. For affective symptoms - there is a trend, hence we include as well.
+
 
 ### 3.2.1 ) Different Variables of Symptom Severity
 
@@ -626,12 +703,51 @@ p_matrix
 ### SDQ & SUM_POS corr: r=0.4738588, p=1.157504e-03
 ### CGI & SUM_SEVERITY corr: r=0.43742577 , p=0.002985648
 
-cor.test(df$bmi, df$rrst_sensitivity)
-# rrst sensitivity and BMI are NOT correlated (-0.02, p=0.82)
 
 ```
 
-### 3.2.2 A) SDQ (separate per group)
+## 3.3) SDQ as outcome variable
+
+```{r}
+#| warning: FALSE
+#| error: FALSE
+
+#SDQ - RRST sensitviity
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication,
+                 data = df_FND) 
+summary(sdq_lm)  # TREND for RRST sensitivity (p = 0.0571)
+
+sdq_lm_affective <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication + anx_dep_SUM,
+                 data = df_FND) 
+summary(sdq_lm_affective)  # TREND for RRST sensitivity (p = 0.0571) remains when including affective symptoms
+
+
+# SAME FOR HC ? 
+#SDQ - RRST sensitviity
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication,
+                 data = df_HC) 
+summary(sdq_lm)  # no sig association
+
+
+#SDQ - metascore
+sdq_lm <- lm(formula = sdq ~  metascore  + psychotropic_medication,
+                 data = df_FND) 
+summary(sdq_lm)  #  sig for metascore p = 0.047528 
+
+
+sdq_lm_affective <- lm(formula = sdq ~  metascore + psychotropic_medication + anx_dep_SUM,
+                 data = df_FND) 
+summary(sdq_lm_affective)  # still sig for metascore after controlling for affective symptoms p = 0.047244
+
+# SAME FOR HC?
+#SDQ - metascore
+sdq_lm <- lm(formula = sdq ~  metascore  + + psychotropic_medication,
+                 data = df_HC) 
+summary(sdq_lm)  # no sig association
+
+```
+
+### 3.3.2 A) SDQ (separate per group)
 
 ```{r}
 #| warning: FALSE
@@ -680,7 +796,7 @@ summary(sdq_lm)  # no sig association
 
 ```
 
-### 3.2.2 B) SDQ (full model group added as a factor)
+### 3.3.2 B) SDQ (full model group added as a factor)
 
 
 ```{r}
@@ -714,7 +830,7 @@ summary(sdq_lm_affective)   # still SIG for metascore after controlling for cova
 
 ```
 
-### 3.2.2 C) SDQ (full model without group as a factor)
+### 3.3.2 C) SDQ (full model without group as a factor)
 
 
 ```{r}
@@ -750,7 +866,7 @@ summary(sdq_lm_affective)  # still SIG; after controling for covariates of no-in
 
 ```
 
-### 3.2.3 ) Symptom Scores (FND only)
+## 3.4 ) Symptom Scores (FND only)
 
 ```{r}
 #| warning: FALSE
