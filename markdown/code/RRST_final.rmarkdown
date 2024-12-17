@@ -9,9 +9,11 @@ format:
 editor: visual
 ---
 
+
 # 0) Data and Preparation
 
 Respiratory Interoception; Analysis of participants of site CH from 15.10.23 until 10.09.2024;
+
 
 ```{r}
 #| output: false
@@ -58,9 +60,11 @@ df[numeric_variables] <- lapply(df[numeric_variables], as.numeric)
 
 ```
 
+
 # 1) Having a Look at the Data 
 
 ## 1.1) Identifying the Outlier to exclude
+
 
 ```{r}
 # Testing Outlier using boxplot (standard deviation)
@@ -135,7 +139,9 @@ df <- df[df$pcode != "63", ]
 
 ```
 
+
 ## 1.2) Testing Distribution of Variables
+
 
 ```{r}
 #| output: false
@@ -181,7 +187,9 @@ shapiro.test(df$bmi[df$group == "0"]) # within control bmi is NOT normally distr
 
 ```
 
+
 ## 1.3) Testing Collinearity of Variables
+
 
 ```{r}
 #| output: false
@@ -216,7 +224,9 @@ df <- df %>%
 
 ```
 
+
 # 2) Group Differences
+
 
 ```{r}
 #| output: false
@@ -256,7 +266,9 @@ res # no sig difference between groups
 
 ```
 
+
 ## 2.1) Demographic Summary Table
+
 
 ```{r}
 #| warning: FALSE
@@ -348,7 +360,9 @@ tbl1
 
 ```
 
+
 ## 2.2) FND Summary Table
+
 
 ```{r}
 #| warning: FALSE
@@ -405,9 +419,11 @@ tbl <- Data.t %>%
 tbl
 ```
 
+
 ## 2.3) Visualization of Group Differences
 
 Here we visualize the different distribution per group across all variables
+
 
 ```{r}
 #| warning: FALSE
@@ -589,9 +605,11 @@ odds_ratio # OR of 17.42
 
 ```
 
+
 # 3) Symptom Severity as dependent variables
 
 ## 3.1 ) Correlations
+
 
 ```{r}
 #| warning: FALSE
@@ -629,10 +647,12 @@ cor.test(df_HC$traitPE_maiaRRST, df_HC$sdq, method = "pearson")
 
 ```
 
+
 ## 3.2 ) Regression Analysis for Symptom Severity
 We identified SDQ to be correlated with RRST sensitivity and metacognition in the FND population only. 
 
 Next, we need to identify which covariates will be included in our linear regression (separate per group) to test whether these correlation survive also the control for these covariates. To do so, we choose those variables that are both theoretically but also statistically correlated with both the predictor (RRST sensitivity and metacognition in our case) and the outcome variable (SDQ in our case). 
+
 
 ```{r}
 
@@ -672,10 +692,12 @@ res #
 res<-t.test(df_FND$sdq[df_FND$sex=="1"], df_FND$sdq[df_FND$sex=="2"])
 res # 
 ```
+
 Seeing that the intake of psychotropic medication is both correlated to our outcome and predictor variables, we have to include this in our linear regression. For the others (sex, age, bmi) we do not have to include those, as they are not statistically correlated to both variables. For affective symptoms - there is a trend, hence we include as well.
 
 
 ### 3.2.1 ) Different Variables of Symptom Severity
+
 
 ```{r}
 #| warning: FALSE
@@ -706,7 +728,9 @@ p_matrix
 
 ```
 
+
 ## 3.3) SDQ as outcome variable
+
 
 ```{r}
 #| warning: FALSE
@@ -748,7 +772,9 @@ summary(sdq_lm)  # no sig association
 ```
 
 
+
 ### 3.3.2) SDQ (full dataset with group as a factor)
+
 
 ```{r}
 #| warning: FALSE
@@ -777,7 +803,9 @@ summary(sdq_lm_affective)  # still SIG for metascore; after controling for affec
 
 ```
 
+
 ## 3.4 ) Symptom Scores (FND only)
+
 
 ```{r}
 #| warning: FALSE
@@ -827,9 +855,11 @@ sum_pos_lm <- lm(formula = sum_severity ~  metascore + sex + age,
 summary(sum_pos_lm)  # no sig assocaition
 ```
 
+
 # 4) SUPPLEMENTARY ANALYSIS: Interoception as dependent variable
 
 ### 4.1) Regression Analysis - separate per group
+
 
 ```{r}
 # predciting rrst sensitvity with covariates,
@@ -858,7 +888,9 @@ summary(lm)
 
 ```
 
+
 ## 4.2) Visualization of sig association
+
 
 ```{r}
 df_plot <- df %>%
@@ -920,6 +952,7 @@ traitPEmaia_anxdep <- ggplot(df_plot, aes(x = anx_dep_SUM, y = traitPE_maiaRRST,
 traitPEmaia_anxdep
 ```
 
+
 # Take Home Message
 
 After excluding one outlier (FND patient \> 2.5 SD from mean, and outlier in terms of value, but also in testing the model fit in terms of normality/homoscedasticity of resiudaly) we have N=91.
@@ -937,3 +970,4 @@ RRST sensitivity was associated with SDQ even after controlling for group, sex, 
 The other variables of symptom severity (SFMDRS, CGI) were not associated with RRST sensitivity, nor metacognition.
 
 For secondary analysis, if we regress our clinical variables (group, sex, psychotropic medication and anx-dep-sum as an affective score) on interoceptive variables, we see that the intake of psychotropic medication is negatively associated with RRST sensitivity (t=-3.069,0.00289) as well as postiviely with TPE(maia-RRST) (t=3.221, p= 0.001817). A higher TPE(maia-rrst) was further also associated with lower affective symptoms (t=-3.998, p=0.000137)
+
