@@ -747,10 +747,16 @@ summary(sdq_lm)  # no sig association
 
 ```
 
+```
 
 ### 3.3.2) SDQ (full dataset with group as a factor)
 
 ```{r}
+
+```{r}
+#| warning: FALSE
+#| error: FALSE
+
 #| warning: FALSE
 #| error: FALSE
 ### ALTERNATIVELY: RUNNING SDQ FOR FULL MODELL
@@ -773,7 +779,32 @@ summary(sdq_lm)  # SIG association of metascore (along with group and medication
 sdq_lm_affective <- lm(formula = sdq ~  metascore + group + psychotropic_medication + anx_dep_SUM,
                  data = df) 
 summary(sdq_lm_affective)  # still SIG for metascore; after controling for affective scores as well
+```
+### 3.3.3) SDQ (full dataset with group as a factor - in interaction with SDQ)
 
+```{r}
+#| warning: FALSE
+#| error: FALSE
+### ALTERNATIVELY: RUNNING SDQ FOR FULL MODELL
+# RRST sensitivity
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity*group + psychotropic_medication,
+                 data = df) 
+summary(sdq_lm)  # 
+
+
+sdq_lm_affective <- lm(formula = sdq ~  rrst_sensitivity*group + psychotropic_medication + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm_affective)  # 
+
+# metascore
+sdq_lm <- lm(formula = sdq ~  metascore*group + psychotropic_medication,
+                 data = df) 
+summary(sdq_lm)  # 
+
+
+sdq_lm_affective <- lm(formula = sdq ~  metascore*group + psychotropic_medication + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm_affective)  # 
 
 ```
 
