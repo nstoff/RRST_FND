@@ -1,9 +1,9 @@
 # RRST in FND
 
- date: 	22 November 2024 
+ date: 		22 November 2024 
  author: 	Natascha Stoffel, natascha.stoffel@unifr.ch
  
-This git hub repository entails the data, scripts and output for the project "Respiratory Sensitivity in Functional Neurological Disorders" - Stoffel, Sojka, Gninenko, Terranova, Aybek
+This git hub repository entails the data, scripts and output for the project "Increased Somatoform Dissociation is associated with reduced Respiratory Sensitivity in Functional Neurological Disorder" - Stoffel, Sojka, Gninenko, Terranova, Aybek
 
 
 The original RRST device was built and published by Nikolova et al 2019
@@ -13,9 +13,6 @@ The original RRST device was built and published by Nikolova et al 2019
 Our repository is structured as follows:
 
 device :	information about the assembly of the device including a manual, pictures, videos and the task code
-
-publication : the publication that follows this project
-
 
 markdown  
     > code :  R script (quarto document/html file)
