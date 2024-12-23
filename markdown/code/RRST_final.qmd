@@ -107,24 +107,11 @@ filtered_pcodes <- df[df$rrst_sensitivity > threshold, "pcode"]
 filtered_pcodes
 # P063
 
-# Testing the Assumptions in the main model (rrst sensitivity predicted by clinical variables) 
-# model:
-lmrrst <- lm(
-  rrst_sensitivity ~ group + sex + bmi + psychotropic_medication + stai_t + bdi,
-  data = df)
-# testing assumptions
-plot(lmrrst, which=1) # testing the assumptions of Linearity and Homoscedasticity with residuals vs fitted plot: the line should more or less be straight: observation 56 is a clear outlier
-plot(lmrrst, which=2) # testing the assumptions normality of residuals with  standardized quantiles: the data points should more or less on the line: observation 56 is a clear outlier (not as extreme but also noted: 81, 65)
-plot(lmrrst, which=3) # testing the assumption of homoscedasticity with scale-location plot--> if there is an incline then we should consider log transformation: observation 56 is a clear outlier (not as extreme but also noted: 81, 65)
-plot(lmrrst, which=5) # testing leverage and influence = when an outlier has a lot of leverage over the regression line (high leverage & large residual; these points will lie close to the right top or bottom corners): observation 56 is a clear outlier (not as extreme but also noted: 81, 6)
- # observation 56 (consistent outlier) = P063
-
 df_exclusion <- df[df$pcode != "63", ]
 
 p1b <- plotBoxplotGroups(df_exclusion, (df_exclusion$rrst_sensitivity), "Respiration Sensitivity") + 
   stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
 print(p1b)
-
 p1b
 
 # Summary of Change - depending on Exclusion of Outlier
@@ -221,10 +208,8 @@ df <- df %>%
 # 2) Group Differences
 
 ```{r}
-#| output: false
 #| warning: FALSE
 #| error: FALSE
-
 ### 1.2 Group Differences as Baseline of Variables of Interst ---------------------------------------------
 # parametric t-test for NORMALLY distributed data
 res<-t.test(df$rrst_sensitivity[df$group=="1"], df$rrst_sensitivity[df$group=="0"])
@@ -672,9 +657,62 @@ cor.test(df_HC$traitPE_maiaRRST, df_HC$sdq, method = "pearson")
 cor.test(df_FND$traitPE_maiaRRST, df_FND$sdq, method = "pearson")  
 cor.test(df_FND$traitPE_maiaRRST, df_FND$sfmdrs, method = "pearson") 
 cor.test(df_FND$traitPE_maiaRRST, df_FND$cgi, method = "pearson") 
+
+### correct for multiple comparision
+
+# Collect all p-values from your tests
+p_values <- c(
+  cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson")$p.value,
+  cor.test(df_FND$rrst_sensitivity, df_FND$sfmdrs, method = "pearson")$p.value,
+  cor.test(df_FND$rrst_sensitivity, df_FND$cgi, method = "pearson")$p.value,
+  
+  cor.test(df_FND$metascore, df_FND$sdq, method = "pearson")$p.value,
+  cor.test(df_FND$metascore, df_FND$sfmdrs, method = "pearson")$p.value,
+  cor.test(df_FND$metascore, df_FND$cgi, method = "pearson")$p.value,
+  
+  cor.test(df_FND$traitPE_iasRRST, df_FND$sdq, method = "pearson")$p.value,
+  cor.test(df_FND$traitPE_iasRRST, df_FND$sfmdrs, method = "pearson")$p.value,
+  cor.test(df_FND$traitPE_iasRRST, df_FND$cgi, method = "pearson")$p.value,
+  
+  cor.test(df_FND$traitPE_maiaRRST, df_FND$sdq, method = "pearson")$p.value,
+  cor.test(df_FND$traitPE_maiaRRST, df_FND$sfmdrs, method = "pearson")$p.value,
+  cor.test(df_FND$traitPE_maiaRRST, df_FND$cgi, method = "pearson")$p.value
+)
+
+# Apply FDR correction
+adjusted_p_values <- p.adjust(p_values, method = "fdr")
+
+# Combine with test names for clarity
+test_names <- c(
+  "rrst_sensitivity vs sdq (FND)",
+  "rrst_sensitivity vs sfmdrs (FND)",
+  "rrst_sensitivity vs cgi (FND)",
+  
+  "metascore vs sdq (FND)",
+  "metascore vs sfmdrs (FND)",
+  "metascore vs cgi (FND)",
+  
+  "traitPE_iasRRST vs sdq (FND)",
+  "traitPE_iasRRST vs sfmdrs (FND)",
+  "traitPE_iasRRST vs cgi (FND)",
+  
+  "traitPE_maiaRRST vs sdq (FND)",
+  "traitPE_maiaRRST vs sfmdrs (FND)",
+  "traitPE_maiaRRST vs cgi (FND)"
+)
+
+# Create a data frame for easier interpretation
+results <- data.frame(
+  Test = test_names,
+  P_Value = p_values,
+  Adjusted_P_Value = adjusted_p_values
+)
+
+# View results
+print(results)
 ```
 
-## 3.2 ) Regression Analysis for Symptom Severity
+## 3.2 ) Identifying Covariates for Regression Analysis 
 We identified SDQ to be correlated with RRST sensitivity and metacognition in the FND population only. 
 
 Next, we need to identify which covariates will be included in our linear regression (separate per group) to test whether these correlation survive also the control for these covariates. To do so, we choose those variables that are both theoretically but also statistically correlated with both the predictor (RRST sensitivity and metacognition in our case) and the outcome variable (SDQ in our case). 
@@ -722,7 +760,7 @@ For the other variables (sex, age, bmi) we do not have to include those, as they
 For affective symptoms - there is a trend, hence we run a supplemantary analysis for including these as well. 
 
 
-## 3.3) Linear Regression for Dissociation Scores
+## 3.3) Linear Regression
 
 ```{r}
 #| warning: FALSE
@@ -866,10 +904,15 @@ traitPEmaia_anxdep
 
 ```{r}
 cor.test(df$ctq_total, df$sdq, method = "pearson")  # r = 0.385153 , p-value = 0.0001633 
-
 # separate per group
-cor.test(df_HC$ctq_total, df_HC$sdq, method = "pearson") # no sig
-cor.test(df_FND$ctq_total, df_FND$sdq, method = "pearson") # r = 0.3307511 , p-value = 0.03028
+cor.test(df$ctq_total[df$group=="1"], df$sdq[df$group=="1"],method = "pearson")# r= 0.3307511 , p-value = 0.03028
+cor.test(df$ctq_total[df$group=="0"], df$sdq[df$group=="0"], method = "pearson")# no sig
+
+
+cor.test(df$ctq_total, df$rrst_sensitivity, method = "pearson")  # r = -0.02621773  ,p-value = 0.8052
+# separate per group
+cor.test(df$ctq_total[df$group=="1"], df$rrst_sensitivity[df$group=="1"],method = "pearson")# no sig
+cor.test(df$ctq_total[df$group=="0"], df$rrst_sensitivity[df$group=="0"], method = "pearson")# no sig
 
 ```
 
