@@ -60,7 +60,7 @@ df$metascore_sqrt <- sqrt(df$metascore)
 
 ```
 
-# 1) Having a Look at the Data 
+# 1) Having a Look at the Data
 
 ## 1.1) Identifying the Outlier to exclude
 
@@ -391,6 +391,7 @@ tbl <- Data.t %>%
 # Print the summary table
 tbl
 ```
+
 ## 2.3) Visualization of Group Differences
 
 Here we visualize the different distribution per group across all variables
@@ -509,6 +510,7 @@ tbl2 <- Data.t %>%
 tbl2
 
 ```
+
 ## 2.4) Effect Sizes and CI
 
 Here we calculate the effect sizes (cohen's d or OR) and the confidence intervals of the variables to be reported
@@ -712,10 +714,11 @@ results <- data.frame(
 print(results)
 ```
 
-## 3.2 ) Identifying Covariates for Regression Analysis 
-We identified SDQ to be correlated with RRST sensitivity and metacognition in the FND population only. 
+## 3.2 ) Identifying Covariates for Regression Analysis
 
-Next, we need to identify which covariates will be included in our linear regression (separate per group) to test whether these correlation survive also the control for these covariates. To do so, we choose those variables that are both theoretically but also statistically correlated with both the predictor (RRST sensitivity and metacognition in our case) and the outcome variable (SDQ in our case). 
+We identified SDQ to be correlated with RRST sensitivity and metacognition in the FND population only.
+
+Next, we need to identify which covariates will be included in our linear regression (separate per group) to test whether these correlation survive also the control for these covariates. To do so, we choose those variables that are both theoretically but also statistically correlated with both the predictor (RRST sensitivity and metacognition in our case) and the outcome variable (SDQ in our case).
 
 ```{r}
 
@@ -755,10 +758,8 @@ res #
 res<-t.test(df_FND$sdq[df_FND$sex=="1"], df_FND$sdq[df_FND$sex=="2"])
 res # 
 ```
-Seeing that the intake of psychotropic medication is both correlated to our outcome and predictor variables, we have to include this in our linear regression. We add it in an interaction term with group, as it is correlated with group, and then we run it on the full model (including both groups). 
-For the other variables (sex, age, bmi) we do not have to include those, as they are not statistically correlated to both variables. 
-For affective symptoms - there is a trend, hence we run a supplemantary analysis for including these as well. 
 
+Seeing that the intake of psychotropic medication is both correlated to our outcome and predictor variables, we have to include this in our linear regression. We add it in an interaction term with group, as it is correlated with group, and then we run it on the full model (including both groups). For the other variables (sex, age, bmi) we do not have to include those, as they are not statistically correlated to both variables. For affective symptoms - there is a trend, hence we run a supplemantary analysis for including these as well.
 
 ## 3.3) Linear Regression
 
@@ -790,14 +791,78 @@ sdq_lm_affective <- lm(formula = sdq ~  metascore*group + psychotropic_medicatio
 summary(sdq_lm_affective)  # 
 confint(sdq_lm_affective, level = 0.95)  
 
+```
 
+## 3.4) SUPPLEMENTARY Regression - separate per group
+
+```{r}
+
+# RRST sensitivity
+sdq_lm_FND <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication,
+                 data = df_FND) 
+summary(sdq_lm_FND)  
+confint(sdq_lm_FND, level = 0.95)  
+
+sdq_lm_affective_FND <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication + anx_dep_SUM,
+                 data = df_FND) 
+summary(sdq_lm_affective_FND)  # 
+confint(sdq_lm_affective_FND, level = 0.95)  
+
+# RRST sensitivity
+sdq_lm_HC <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication,
+                 data = df_HC) 
+summary(sdq_lm_HC)  
+confint(sdq_lm_HC, level = 0.95)  
+
+sdq_lm_affective_HC <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication + anx_dep_SUM,
+                 data = df_HC) 
+summary(sdq_lm_affective_HC)  # 
+confint(sdq_lm_affective_HC, level = 0.95)  
+
+# metascore
+sdq_lm_FND <- lm(formula = sdq ~  metascore + psychotropic_medication,
+                 data = df_FND) 
+summary(sdq_lm_FND)  # 
+confint(sdq_lm_FND, level = 0.95)  
+
+
+sdq_lm_affective_FND <- lm(formula = sdq ~  metascore + psychotropic_medication + anx_dep_SUM,
+                 data = df_FND) 
+summary(sdq_lm_affective_FND)  # 
+confint(sdq_lm_affective_FND, level = 0.95)  
+
+sdq_lm_HC <- lm(formula = sdq ~  metascore + psychotropic_medication,
+                 data = df_HC) 
+summary(sdq_lm_HC)  # 
+confint(sdq_lm_HC, level = 0.95)  
+
+
+sdq_lm_affective_HC <- lm(formula = sdq ~  metascore + psychotropic_medication + anx_dep_SUM,
+                 data = df_HC) 
+summary(sdq_lm_affective_HC)  # 
+confint(sdq_lm_affective_HC, level = 0.95)  
 
 ```
 
+# 4) CTQ and SDQ
 
-# 4) SUPPLEMENTARY ANALYSIS: Interoception as dependent variable
+```{r}
+cor.test(df$ctq_total, df$sdq, method = "pearson")  # r = 0.385153 , p-value = 0.0001633 
+# separate per group
+cor.test(df$ctq_total[df$group=="1"], df$sdq[df$group=="1"],method = "pearson")# r= 0.3307511 , p-value = 0.03028
+cor.test(df$ctq_total[df$group=="0"], df$sdq[df$group=="0"], method = "pearson")# no sig
 
-### 4.1) Regression Analysis - separate per group
+
+cor.test(df$ctq_total, df$rrst_sensitivity, method = "pearson")  # r = -0.02621773  ,p-value = 0.8052
+# separate per group
+cor.test(df$ctq_total[df$group=="1"], df$rrst_sensitivity[df$group=="1"],method = "pearson")# no sig
+cor.test(df$ctq_total[df$group=="0"], df$rrst_sensitivity[df$group=="0"], method = "pearson")# no sig
+
+```
+
+# 5) SUPPLEMENTARY ANALYSIS: Interoception as dependent variable
+
+### 5.1) Regression Analysis - separate per group
 
 ```{r}
 # predciting rrst sensitvity with covariates,
@@ -838,7 +903,7 @@ summary(lm)
 
 ```
 
-## 4.2) Visualization of sig association
+## 5.2) Visualization of sig association
 
 ```{r}
 df_plot <- df %>%
@@ -899,20 +964,3 @@ traitPEmaia_anxdep <- ggplot(df_plot, aes(x = anx_dep_SUM, y = traitPE_maiaRRST,
   theme(panel.grid = element_blank())  # Remove grid lines
 traitPEmaia_anxdep
 ```
-
-# 5) CTQ and SDQ
-
-```{r}
-cor.test(df$ctq_total, df$sdq, method = "pearson")  # r = 0.385153 , p-value = 0.0001633 
-# separate per group
-cor.test(df$ctq_total[df$group=="1"], df$sdq[df$group=="1"],method = "pearson")# r= 0.3307511 , p-value = 0.03028
-cor.test(df$ctq_total[df$group=="0"], df$sdq[df$group=="0"], method = "pearson")# no sig
-
-
-cor.test(df$ctq_total, df$rrst_sensitivity, method = "pearson")  # r = -0.02621773  ,p-value = 0.8052
-# separate per group
-cor.test(df$ctq_total[df$group=="1"], df$rrst_sensitivity[df$group=="1"],method = "pearson")# no sig
-cor.test(df$ctq_total[df$group=="0"], df$rrst_sensitivity[df$group=="0"], method = "pearson")# no sig
-
-```
-
