@@ -609,7 +609,7 @@ p_matrix
 
 # SIG correlations of different symptom severity scores
 ### CGI & SFMDRS corr: r= 0.5841928 , p=3.136863e-05
-
+### CGI & SDQ corr: r = 0.31 , p = 0.045
 ```
 
 ## 3.1 ) Correlations with SDQ
@@ -623,32 +623,44 @@ cor.test(df$rrst_sensitivity, df$sdq, method = "pearson")
  # p-value = 0.0002628,  cor = -0.3737694 
 
 # separate per group
-cor.test(df_HC$rrst_sensitivity, df_HC$sdq, method = "pearson") 
-
-cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson") # r = -0.3828185, p-value = 0.01129
-cor.test(df_FND$rrst_sensitivity, df_FND$sfmdrs, method = "pearson") 
-cor.test(df_FND$rrst_sensitivity, df_FND$cgi, method = "pearson") 
-
+cor0<-cor.test(df_HC$rrst_sensitivity, df_HC$sdq, method = "pearson") 
+cor1 <- cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson") # r = -0.3828185, p-value = 0.01129
+cor2 <- cor.test(df_FND$rrst_sensitivity, df_FND$sfmdrs, method = "pearson") 
+cor3 <- cor.test(df_FND$rrst_sensitivity, df_FND$cgi, method = "pearson") 
+p_values <- c(cor0$p.value, cor1$p.value, cor2$p.value, cor3$p.value) # extract pvalues
+p_adjusted <- p.adjust(p_values, method = "bonferroni") # Correct p-values for multiple comparisons
+results_rrst <- data.frame(
+  Comparison = c("HC: rrst_sensitivity vs sdq", "FND: rrst_sensitivity vs sdq", "FND: rrst_sensitivity vs sfmdrs", "FND: rrst_sensitivity vs cgi"),
+  Original_P = p_values,
+  Adjusted_P = p_adjusted)
+print(results_rrst)
 
 cor.test(df$metascore, df$sdq, method = "pearson")  
 # p-value = 0.01012, cor = -0.2683359 
 
-# separate per group
-cor.test(df_HC$metascore, df_HC$sdq, method = "pearson")
+# separate per group metascore
+cor0<- cor.test(df_HC$metascore, df_HC$sdq, method = "pearson")
+cor1 <- cor.test(df_FND$metascore, df_FND$sdq, method = "pearson")  # r = -0.36099, p-value = 0.0174
+cor2 <- cor.test(df_FND$metascore, df_FND$sfmdrs, method = "pearson") 
+cor3 <- cor.test(df_FND$metascore, df_FND$cgi, method = "pearson") 
+p_values <- c(cor0$p.value, cor1$p.value, cor2$p.value, cor3$p.value) # extract pvalues
+p_adjusted <- p.adjust(p_values, method = "bonferroni") # Correct p-values for multiple comparisons (change for fdr / bonferroni etc if needed but result stay the same in this example)
+results_meta <- data.frame(
+  Comparison = c("HC: metascore vs sdq", "FND: metascore vs sdq", "FND: metascore vs sfmdrs", "FND: metascore vs cgi"),
+  Original_P = p_values,
+  Adjusted_P = p_adjusted)
+print(results_meta)
 
-cor.test(df_FND$metascore, df_FND$sdq, method = "pearson")  # r = -0.36099, p-value = 0.0174
-cor.test(df_FND$metascore, df_FND$sfmdrs, method = "pearson") 
-cor.test(df_FND$metascore, df_FND$cgi, method = "pearson") 
+
 
 cor.test(df$traitPE_iasRRST, df$sdq, method = "pearson") 
 # p-value = 0.470, cor= -0.07664066 
+
 # separate per group
 cor.test(df_HC$traitPE_iasRRST, df_HC$sdq, method = "pearson")  
-
 cor.test(df_FND$traitPE_iasRRST, df_FND$sdq, method = "pearson")  
 cor.test(df_FND$traitPE_iasRRST, df_FND$sfmdrs, method = "pearson") 
 cor.test(df_FND$traitPE_iasRRST, df_FND$cgi, method = "pearson") 
-
 
 
 cor.test(df$traitPE_maiaRRST, df$sdq, method = "pearson") 
@@ -660,7 +672,8 @@ cor.test(df_FND$traitPE_maiaRRST, df_FND$sdq, method = "pearson")
 cor.test(df_FND$traitPE_maiaRRST, df_FND$sfmdrs, method = "pearson") 
 cor.test(df_FND$traitPE_maiaRRST, df_FND$cgi, method = "pearson") 
 
-### correct for multiple comparision
+
+### FOR FND ONLY
 
 # Collect all p-values from your tests
 p_values <- c(
