@@ -873,7 +873,7 @@ cor.test(df$ctq_total[df$group=="0"], df$rrst_sensitivity[df$group=="0"], method
 
 ```
 
-## 4.1) Mediation Analysis 
+## 4.1) Mediation Analysis : RRST sensitivity
 
 ```{r}
 library(mediation) #Mediation package
@@ -917,6 +917,11 @@ gvlma(fitY_HC)
 fitMed_HC <- mediate(fitM_HC, fitY_HC, treat="ctq_total", mediator="sdq")
 summary(fitMed_HC) # nothing
 
+```
+
+## 4.2) Mediation Analysis: Metacognition
+
+```{r}
 #  METACOGNITION
 fitM <- lm(sdq ~ ctq_total,     data=df) #IV on M; CTQ predicting SDQ
 fitY <- lm(metascore ~ sdq + ctq_total, data=df) #IV and M on DV; CTQ and SDQ predicting metascore
