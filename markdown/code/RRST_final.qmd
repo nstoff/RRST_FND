@@ -873,6 +873,29 @@ cor.test(df$ctq_total[df$group=="0"], df$rrst_sensitivity[df$group=="0"], method
 
 ```
 
+## 4.1) Mediation Analysis 
+
+```{r}
+library(mediation) #Mediation package
+library(gvlma) #Testing Model Assumptions 
+?mediate
+fitM <- lm(sdq ~ ctq_total,     data=df) #IV on M; CTQ predicting SDQ
+fitY <- lm(rrst_sensitivity ~ sdq + ctq_total, data=df) #IV and M on DV; CTQ and SDQ predicting rrst_sensitivity
+gvlma(fitM) #ASSUMPTIONS NOT satisfied!
+gvlma(fitY)
+
+fitMed <- mediate(fitM, fitY, treat="ctq_total", mediator="sdq")
+summary(fitMed)
+# Average Causal Mediation Effects (ACME) : sig --> there is mediation effect
+# Average Direct Effects (ADE) :  not sig --> there is no direct effect from ctq to respiratory interoception
+# combined indirect and direct effects (Total Effect) :  not sig --> there is no sig total effect
+
+#Bootstrap to verify 
+fitMedBoot <- mediate(fitM, fitY, boot=TRUE, sims=999, treat="ctq_total", mediator="sdq")
+summary(fitMedBoot) # same results
+
+```
+
 # 5) SUPPLEMENTARY ANALYSIS: Interoception as dependent variable
 
 ### 5.1) Regression Analysis - separate per group
