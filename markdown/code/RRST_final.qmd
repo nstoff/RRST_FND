@@ -960,6 +960,87 @@ fitMed_HC <- mediate(fitM_HC, fitY_HC, treat="ctq_total", mediator="sdq")
 summary(fitMed_HC) # nothing
 ```
 
+## 4.1B) Mediation Analysis: Metacognition
+
+```{r}
+library(mediation) #Mediation package
+library(gvlma) #Testing Model Assumptions 
+?mediate
+
+#  RRST sensivitiyy
+fitM <- lm(rrst_sensitivity ~ ctq_total,     data=df) #IV on M; CTQ predicting rrst sensitivity
+fitY <- lm(sdq ~ rrst_sensitivity + ctq_total, data=df) #IV and M on DV; CTQ and SDQ predicting rrst_sensitivity
+gvlma(fitM) 
+gvlma(fitY) # ASSUMPTION NOT MET !
+
+fitMed <- mediate(fitM, fitY, treat="ctq_total", mediator="rrst_sensitivity")
+summary(fitMed)
+# Average Causal Mediation Effects (ACME) : not sig --> there is no mediation effect
+# Average Direct Effects (ADE) :  <2e-16 *** sig --> there is a direct effect from rrst to SDQ
+# combined indirect and direct effects (Total Effect) : <2e-16 *** sig --> there is a total effect of the model (driven by the direct effect?!)
+
+#  analysis separate per group
+fitM_FND <- lm(rrst_sensitivity ~ ctq_total,     data=df_FND) #IV on M; CTQ predicting rrst sensitivity
+fitY_FND <- lm(sdq ~ rrst_sensitivity + ctq_total, data=df_FND) #IV and M on DV; CTQ and rrst sebsutuvity predicting sdq
+gvlma(fitM_FND) 
+gvlma(fitY_FND)# ASSUMPTIONS not met!
+
+fitMed_FND <- mediate(fitM_FND, fitY_FND, treat="ctq_total", mediator="rrst_sensitivity")
+summary(fitMed_FND)
+# Average Causal Mediation Effects (ACME) : not sig --> there is NO mediation effect
+# Average Direct Effects (ADE) :  sig 0.006 ** --> there is a direct effect from ctq to respiratory interoception
+# combined indirect and direct effects (Total Effect) :  0.024 * sig --> there is a sig total effect
+
+fitM_HC <- lm(rrst_sensitivity ~ ctq_total,     data=df_HC) #IV on M; CTQ predicting rrst_sensitivity
+fitY_HC <- lm(sdq ~ rrst_sensitivity + ctq_total, data=df_HC) #IV and M on DV; CTQ and rrst_sensitivity predicting SDQ
+gvlma(fitM_HC)
+gvlma(fitY_HC)  #not all assumptions are met!
+
+fitMed_HC <- mediate(fitM_HC, fitY_HC, treat="ctq_total", mediator="rrst_sensitivity")
+summary(fitMed_HC) # nothing
+
+```
+
+## 4.2B) Mediation Analysis: Metacognition
+
+```{r}
+#  METACOGNITION
+fitM <- lm(sdq ~ ctq_total,     data=df) #IV on M; CTQ predicting SDQ
+fitY <- lm(metascore ~ sdq + ctq_total, data=df) #IV and M on DV; CTQ and SDQ predicting metascore
+gvlma(fitM) #ASSUMPTIONS NOT satisfied!
+gvlma(fitY) #ASSUMPTIONS NOT satisfied!
+
+fitMed <- mediate(fitM, fitY, treat="ctq_total", mediator="sdq")
+summary(fitMed)
+# Average Causal Mediation Effects (ACME) :  0.002  sig --> there is mediation effect
+# Average Direct Effects (ADE) :  0.042 sig --> there is also a direct effect from ctq to metascore
+# combined indirect and direct effects (Total Effect) :  not sig --> there is no sig total effect
+
+# this may be due to variance that is different across both groups, thus analysis separate per group
+fitM_FND <- lm(sdq ~ ctq_total,     data=df_FND) #IV on M; CTQ predicting SDQ
+fitY_FND <- lm(metascore ~ sdq + ctq_total, data=df_FND) #IV and M on DV; CTQ and SDQ predicting metascore
+gvlma(fitM_FND) #ASSUMPTIONS NOT satisfied!
+gvlma(fitY_FND) #ASSUMPTIONS NOT satisfied!
+
+fitMed_FND <- mediate(fitM_FND, fitY_FND, treat="ctq_total", mediator="sdq")
+summary(fitMed_FND)
+# Average Causal Mediation Effects (ACME) : sig0.018 --> there is mediation effect
+# Average Direct Effects (ADE) :  marginally not sig 0.034--> there is no direct effect from ctq to metascore
+# combined indirect and direct effects (Total Effect) :  not sig --> there is no sig total effect
+
+#Bootstrap to verify 
+fitMedBoot_FND <- mediate(fitM_FND, fitY_FND, boot=TRUE, sims=999, treat="ctq_total", mediator="sdq")
+summary(fitMedBoot_FND) # sig effect for direct effect ; 0.02
+
+
+fitM_HC <- lm(sdq ~ ctq_total,     data=df_HC) #IV on M; CTQ predicting SDQ
+fitY_HC <- lm(metascore ~ sdq + ctq_total, data=df_HC) #IV and M on DV; CTQ and SDQ predicting metascore
+gvlma(fitM_HC) 
+gvlma(fitY_HC)
+
+fitMed_HC <- mediate(fitM_HC, fitY_HC, treat="ctq_total", mediator="sdq")
+summary(fitMed_HC) # nothing
+```
 # 5) SUPPLEMENTARY ANALYSIS: Interoception as dependent variable
 
 ### 5.1) Regression Analysis - separate per group
@@ -1003,7 +1084,7 @@ summary(lm)
 
 ```
 
-## 5.2) Visualization of sig association
+## 5.2) Visualization
 
 ```{r}
 df_plot <- df %>%
@@ -1038,6 +1119,15 @@ meta_sdq <- ggplot(df_plot, aes(x = sdq, y = metascore, color = as.factor(group)
 meta_sdq
 
 
+library(patchwork)
+# Combine the two plots with labels A and B
+combined_plot <- RRST_sdq + meta_sdq +
+  plot_annotation(tag_levels = 'A') & # Adds labels A and B
+  theme(plot.tag = element_text(face = "bold")) # in bold font
+# Display the combined plot
+print(combined_plot)
+
+
 # Sex-RRST_sensitivity
 RRST_sex <- ggplot(df_plot, aes(x = as.factor(sex), y = rrst_sensitivity, fill = as.factor(group))) +
   geom_boxplot() +  # Create the box plot
@@ -1050,6 +1140,7 @@ RRST_sex <- ggplot(df_plot, aes(x = as.factor(sex), y = rrst_sensitivity, fill =
   scale_fill_manual(values = c("HC" = "#868686FF", "FND" = "#E95248"))+ #custom colors
   theme(panel.grid = element_blank())  # Remove grid lines
 RRST_sex
+
 
 # traitPEmaia-Anx-Dep
 traitPEmaia_anxdep <- ggplot(df_plot, aes(x = anx_dep_SUM, y = traitPE_maiaRRST, color = as.factor(group))) +
