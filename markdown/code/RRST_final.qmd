@@ -694,8 +694,8 @@ p_values <- c(
   cor.test(df_FND$traitPE_maiaRRST, df_FND$cgi, method = "pearson")$p.value
 )
 
-# Apply FDR correction
-adjusted_p_values <- p.adjust(p_values, method = "fdr")
+# Apply Bonferroni correction
+adjusted_p_values <- p.adjust(p_values, method = "bonferroni")
 
 # Combine with test names for clarity
 test_names <- c(
