@@ -657,40 +657,40 @@ cor.test(df$traitPE_iasRRST, df$sdq, method = "pearson")
 # p-value = 0.470, cor= -0.07664066 
 
 # separate per group
-cor.test(df_HC$traitPE_iasRRST, df_HC$sdq, method = "pearson")  
 cor.test(df_FND$traitPE_iasRRST, df_FND$sdq, method = "pearson")  
+cor.test(df_HC$traitPE_iasRRST, df_HC$sdq, method = "pearson")  
 cor.test(df_FND$traitPE_iasRRST, df_FND$sfmdrs, method = "pearson") 
 cor.test(df_FND$traitPE_iasRRST, df_FND$cgi, method = "pearson") 
 
-
-cor.test(df$traitPE_maiaRRST, df$sdq, method = "pearson") 
-#  p-value = 0.9064, cor = -0.01250354 
-# separate per group
-cor.test(df_HC$traitPE_maiaRRST, df_HC$sdq, method = "pearson")  
-
 cor.test(df_FND$traitPE_maiaRRST, df_FND$sdq, method = "pearson")  
+cor.test(df_HC$traitPE_maiaRRST, df_HC$sdq, method = "pearson")  
 cor.test(df_FND$traitPE_maiaRRST, df_FND$sfmdrs, method = "pearson") 
 cor.test(df_FND$traitPE_maiaRRST, df_FND$cgi, method = "pearson") 
 
 
 ### FOR FND ONLY
+# Exclude participants with sfmdrs = 0
+filtered_df <- df_FND[df_FND$sfmdrs != 0, ]
+# Count how many participants were excluded
+excluded_count <- sum(df_FND$sfmdrs == 0)
+excluded_count 
 
-# Collect all p-values from your tests
+# Collect all p-values from test of interoception varibales and clincial variables
 p_values <- c(
   cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson")$p.value,
-  cor.test(df_FND$rrst_sensitivity, df_FND$sfmdrs, method = "pearson")$p.value,
+  cor.test(filtered_df$rrst_sensitivity, filtered_df$sfmdrs, method = "pearson")$p.value,
   cor.test(df_FND$rrst_sensitivity, df_FND$cgi, method = "pearson")$p.value,
   
   cor.test(df_FND$metascore, df_FND$sdq, method = "pearson")$p.value,
-  cor.test(df_FND$metascore, df_FND$sfmdrs, method = "pearson")$p.value,
+  cor.test(filtered_df$metascore, filtered_df$sfmdrs, method = "pearson")$p.value,
   cor.test(df_FND$metascore, df_FND$cgi, method = "pearson")$p.value,
   
   cor.test(df_FND$traitPE_iasRRST, df_FND$sdq, method = "pearson")$p.value,
-  cor.test(df_FND$traitPE_iasRRST, df_FND$sfmdrs, method = "pearson")$p.value,
+  cor.test(filtered_df$traitPE_iasRRST, filtered_df$sfmdrs, method = "pearson")$p.value,
   cor.test(df_FND$traitPE_iasRRST, df_FND$cgi, method = "pearson")$p.value,
   
   cor.test(df_FND$traitPE_maiaRRST, df_FND$sdq, method = "pearson")$p.value,
-  cor.test(df_FND$traitPE_maiaRRST, df_FND$sfmdrs, method = "pearson")$p.value,
+  cor.test(filtered_df$traitPE_maiaRRST, filtered_df$sfmdrs, method = "pearson")$p.value,
   cor.test(df_FND$traitPE_maiaRRST, df_FND$cgi, method = "pearson")$p.value
 )
 
@@ -715,6 +715,54 @@ test_names <- c(
   "traitPE_maiaRRST vs sfmdrs (FND)",
   "traitPE_maiaRRST vs cgi (FND)"
 )
+
+# Create a data frame for easier interpretation
+results <- data.frame(
+  Test = test_names,
+  P_Value = p_values,
+  Adjusted_P_Value = adjusted_p_values
+)
+
+# View results
+print(results)
+
+
+
+
+#### CLINICAL and INTEROCEPTIVE SENSIBILITY
+# separate per group
+cor.test(df_FND$maia_total, df_FND$sdq, method = "pearson")  
+cor.test(filtered_df$maia_total, filtered_df$sfmdrs, method = "pearson")  
+cor.test(df_FND$maia_total, df_FND$cgi, method = "pearson") 
+
+cor.test(df_FND$ias, df_FND$sdq, method = "pearson")  # t = -2.32, df = 41, p-value = 0.02539
+cor.test(filtered_df$ias, filtered_df$sfmdrs, method = "pearson")  
+cor.test(df_FND$ias, df_FND$cgi, method = "pearson") 
+
+
+# Collect all p-values from test of interoception varibales and clincial variables
+p_values <- c(
+  cor.test(df_FND$maia_total, df_FND$sdq, method = "pearson")$p.value,
+  cor.test(filtered_df$maia_total, filtered_df$sfmdrs, method = "pearson")$p.value,
+  cor.test(df_FND$maia_total, df_FND$cgi, method = "pearson")$p.value,
+  
+  cor.test(df_FND$ias, df_FND$sdq, method = "pearson")$p.value,
+  cor.test(filtered_df$ias, filtered_df$sfmdrs, method = "pearson")$p.value,
+  cor.test(df_FND$ias, df_FND$cgi, method = "pearson")$p.value,
+)
+
+# Apply Bonferroni correction
+adjusted_p_values <- p.adjust(p_values, method = "bonferroni")
+
+# Combine with test names for clarity
+test_names <- c(
+  "MAIA vs sdq (FND)",
+  "MAIA vs sfmdrs (FND)",
+  "MAIAvs cgi (FND)",
+  
+  "IAS vs sdq (FND)",
+  "IAS vs sfmdrs (FND)",
+  "IAS vs cgi (FND)")
 
 # Create a data frame for easier interpretation
 results <- data.frame(
@@ -1041,6 +1089,7 @@ gvlma(fitY_HC)
 fitMed_HC <- mediate(fitM_HC, fitY_HC, treat="ctq_total", mediator="sdq")
 summary(fitMed_HC) # nothing
 ```
+
 # 5) SUPPLEMENTARY ANALYSIS: Interoception as dependent variable
 
 ### 5.1) Regression Analysis - separate per group
