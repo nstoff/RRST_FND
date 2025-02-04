@@ -617,20 +617,20 @@ p_matrix
 ```{r}
 #| warning: FALSE
 #| error: FALSE
+# Exclude participants with sfmdrs = 0
+filtered_df <- df_FND[df_FND$sfmdrs != 0, ]
+# Count how many participants were excluded
+excluded_count <- sum(df_FND$sfmdrs == 0)
+excluded_count 
 
-# SIMPLE CORRELATION OF INTEROCEPTIVE VARIABLES WITH SYMPTOM SEVERITY (that we have for both groups; SDQ)
-cor.test(df$rrst_sensitivity, df$sdq, method = "pearson") 
- # p-value = 0.0002628,  cor = -0.3737694 
-
-# separate per group
-cor0<-cor.test(df_HC$rrst_sensitivity, df_HC$sdq, method = "pearson") 
+# SIMPLE CORRELATION OF RRST sensitivity and symptom severity scores - includign SDQ
 cor1 <- cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson") # r = -0.3828185, p-value = 0.01129
-cor2 <- cor.test(df_FND$rrst_sensitivity, df_FND$sfmdrs, method = "pearson") 
+cor2 <- cor.test(filtered_df$rrst_sensitivity, filtered_df$sfmdrs, method = "pearson") 
 cor3 <- cor.test(df_FND$rrst_sensitivity, df_FND$cgi, method = "pearson") 
-p_values <- c(cor0$p.value, cor1$p.value, cor2$p.value, cor3$p.value) # extract pvalues
+p_values <- c(cor1$p.value, cor2$p.value, cor3$p.value) # extract pvalues
 p_adjusted <- p.adjust(p_values, method = "bonferroni") # Correct p-values for multiple comparisons
 results_rrst <- data.frame(
-  Comparison = c("HC: rrst_sensitivity vs sdq", "FND: rrst_sensitivity vs sdq", "FND: rrst_sensitivity vs sfmdrs", "FND: rrst_sensitivity vs cgi"),
+  Comparison = c("FND: rrst_sensitivity vs sdq", "FND: rrst_sensitivity vs sfmdrs", "FND: rrst_sensitivity vs cgi"),
   Original_P = p_values,
   Adjusted_P = p_adjusted)
 print(results_rrst)
@@ -638,98 +638,31 @@ print(results_rrst)
 cor.test(df$metascore, df$sdq, method = "pearson")  
 # p-value = 0.01012, cor = -0.2683359 
 
-# separate per group metascore
-cor0<- cor.test(df_HC$metascore, df_HC$sdq, method = "pearson")
+#  metascore
 cor1 <- cor.test(df_FND$metascore, df_FND$sdq, method = "pearson")  # r = -0.36099, p-value = 0.0174
-cor2 <- cor.test(df_FND$metascore, df_FND$sfmdrs, method = "pearson") 
+cor2 <- cor.test(filtered_df$metascore, filtered_df$sfmdrs, method = "pearson") 
 cor3 <- cor.test(df_FND$metascore, df_FND$cgi, method = "pearson") 
-p_values <- c(cor0$p.value, cor1$p.value, cor2$p.value, cor3$p.value) # extract pvalues
+p_values <- c(cor1$p.value, cor2$p.value, cor3$p.value) # extract pvalues
 p_adjusted <- p.adjust(p_values, method = "bonferroni") # Correct p-values for multiple comparisons (change for fdr / bonferroni etc if needed but result stay the same in this example)
 results_meta <- data.frame(
-  Comparison = c("HC: metascore vs sdq", "FND: metascore vs sdq", "FND: metascore vs sfmdrs", "FND: metascore vs cgi"),
+  Comparison = c("FND: metascore vs sdq", "FND: metascore vs sfmdrs", "FND: metascore vs cgi"),
   Original_P = p_values,
   Adjusted_P = p_adjusted)
 print(results_meta)
 
 
-
-cor.test(df$traitPE_iasRRST, df$sdq, method = "pearson") 
-# p-value = 0.470, cor= -0.07664066 
-
-# separate per group
+# TPE with IAS
 cor.test(df_FND$traitPE_iasRRST, df_FND$sdq, method = "pearson")  
-cor.test(df_HC$traitPE_iasRRST, df_HC$sdq, method = "pearson")  
-cor.test(df_FND$traitPE_iasRRST, df_FND$sfmdrs, method = "pearson") 
+cor.test(filtered_df$traitPE_iasRRST, filtered_df$sfmdrs, method = "pearson") 
 cor.test(df_FND$traitPE_iasRRST, df_FND$cgi, method = "pearson") 
 
 cor.test(df_FND$traitPE_maiaRRST, df_FND$sdq, method = "pearson")  
-cor.test(df_HC$traitPE_maiaRRST, df_HC$sdq, method = "pearson")  
-cor.test(df_FND$traitPE_maiaRRST, df_FND$sfmdrs, method = "pearson") 
+cor.test(filtered_df$traitPE_maiaRRST, filtered_df$sfmdrs, method = "pearson") 
 cor.test(df_FND$traitPE_maiaRRST, df_FND$cgi, method = "pearson") 
 
 
-### FOR FND ONLY
-# Exclude participants with sfmdrs = 0
-filtered_df <- df_FND[df_FND$sfmdrs != 0, ]
-# Count how many participants were excluded
-excluded_count <- sum(df_FND$sfmdrs == 0)
-excluded_count 
 
-# Collect all p-values from test of interoception varibales and clincial variables
-p_values <- c(
-  cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson")$p.value,
-  cor.test(filtered_df$rrst_sensitivity, filtered_df$sfmdrs, method = "pearson")$p.value,
-  cor.test(df_FND$rrst_sensitivity, df_FND$cgi, method = "pearson")$p.value,
-  
-  cor.test(df_FND$metascore, df_FND$sdq, method = "pearson")$p.value,
-  cor.test(filtered_df$metascore, filtered_df$sfmdrs, method = "pearson")$p.value,
-  cor.test(df_FND$metascore, df_FND$cgi, method = "pearson")$p.value,
-  
-  cor.test(df_FND$traitPE_iasRRST, df_FND$sdq, method = "pearson")$p.value,
-  cor.test(filtered_df$traitPE_iasRRST, filtered_df$sfmdrs, method = "pearson")$p.value,
-  cor.test(df_FND$traitPE_iasRRST, df_FND$cgi, method = "pearson")$p.value,
-  
-  cor.test(df_FND$traitPE_maiaRRST, df_FND$sdq, method = "pearson")$p.value,
-  cor.test(filtered_df$traitPE_maiaRRST, filtered_df$sfmdrs, method = "pearson")$p.value,
-  cor.test(df_FND$traitPE_maiaRRST, df_FND$cgi, method = "pearson")$p.value
-)
-
-# Apply Bonferroni correction
-adjusted_p_values <- p.adjust(p_values, method = "bonferroni")
-
-# Combine with test names for clarity
-test_names <- c(
-  "rrst_sensitivity vs sdq (FND)",
-  "rrst_sensitivity vs sfmdrs (FND)",
-  "rrst_sensitivity vs cgi (FND)",
-  
-  "metascore vs sdq (FND)",
-  "metascore vs sfmdrs (FND)",
-  "metascore vs cgi (FND)",
-  
-  "traitPE_iasRRST vs sdq (FND)",
-  "traitPE_iasRRST vs sfmdrs (FND)",
-  "traitPE_iasRRST vs cgi (FND)",
-  
-  "traitPE_maiaRRST vs sdq (FND)",
-  "traitPE_maiaRRST vs sfmdrs (FND)",
-  "traitPE_maiaRRST vs cgi (FND)"
-)
-
-# Create a data frame for easier interpretation
-results <- data.frame(
-  Test = test_names,
-  P_Value = p_values,
-  Adjusted_P_Value = adjusted_p_values
-)
-
-# View results
-print(results)
-
-
-
-
-#### CLINICAL and INTEROCEPTIVE SENSIBILITY
+#### CLINICAL VARIABLES and INTEROCEPTIVE SENSIBILITY
 # separate per group
 cor.test(df_FND$maia_total, df_FND$sdq, method = "pearson")  
 cor.test(filtered_df$maia_total, filtered_df$sfmdrs, method = "pearson")  
@@ -748,7 +681,7 @@ p_values <- c(
   
   cor.test(df_FND$ias, df_FND$sdq, method = "pearson")$p.value,
   cor.test(filtered_df$ias, filtered_df$sfmdrs, method = "pearson")$p.value,
-  cor.test(df_FND$ias, df_FND$cgi, method = "pearson")$p.value,
+  cor.test(df_FND$ias, df_FND$cgi, method = "pearson")$p.value
 )
 
 # Apply Bonferroni correction
@@ -854,7 +787,7 @@ confint(sdq_lm_affective, level = 0.95)
 
 ```
 
-## 3.4) SUPPLEMENTARY Regression - separate per group
+## 3.4) SUPPLEMENTARY Regression - separate per group and controlling for ANX-DEP sum scores
 
 ```{r}
 
@@ -919,288 +852,4 @@ cor.test(df$ctq_total, df$rrst_sensitivity, method = "pearson")  # r = -0.026217
 cor.test(df$ctq_total[df$group=="1"], df$rrst_sensitivity[df$group=="1"],method = "pearson")# no sig
 cor.test(df$ctq_total[df$group=="0"], df$rrst_sensitivity[df$group=="0"], method = "pearson")# no sig
 
-```
-
-## 4.1) Mediation Analysis : RRST sensitivity
-
-```{r}
-library(mediation) #Mediation package
-library(gvlma) #Testing Model Assumptions 
-?mediate
-
-#  RRST sensivitiyy
-fitM <- lm(sdq ~ ctq_total,     data=df) #IV on M; CTQ predicting SDQ
-fitY <- lm(rrst_sensitivity ~ sdq + ctq_total, data=df) #IV and M on DV; CTQ and SDQ predicting rrst_sensitivity
-gvlma(fitM) #ASSUMPTIONS NOT satisfied!
-gvlma(fitY)
-
-fitMed <- mediate(fitM, fitY, treat="ctq_total", mediator="sdq")
-summary(fitMed)
-# Average Causal Mediation Effects (ACME) : sig --> there is mediation effect
-# Average Direct Effects (ADE) :  not sig --> there is no direct effect from ctq to respiratory interoception
-# combined indirect and direct effects (Total Effect) :  not sig --> there is no sig total effect
-
-# this may be due to variance that is different across both groups, thus analysis separate per group
-fitM_FND <- lm(sdq ~ ctq_total,     data=df_FND) #IV on M; CTQ predicting SDQ
-fitY_FND <- lm(rrst_sensitivity ~ sdq + ctq_total, data=df_FND) #IV and M on DV; CTQ and SDQ predicting rrst_sensitivity
-gvlma(fitM_FND) # only skewness is not met
-gvlma(fitY_FND)
-
-fitMed_FND <- mediate(fitM_FND, fitY_FND, treat="ctq_total", mediator="sdq")
-summary(fitMed_FND)
-# Average Causal Mediation Effects (ACME) : sig 0.04 --> there is mediation effect
-# Average Direct Effects (ADE) :  marginally not sig 0.09 --> there is no direct effect from ctq to respiratory interoception
-# combined indirect and direct effects (Total Effect) :  not sig --> there is no sig total effect
-
-#Bootstrap to verify 
-fitMedBoot_FND <- mediate(fitM_FND, fitY_FND, boot=TRUE, sims=999, treat="ctq_total", mediator="sdq")
-summary(fitMedBoot_FND) # marginal effect for mediation 0.066
-
-
-fitM_HC <- lm(sdq ~ ctq_total,     data=df_HC) #IV on M; CTQ predicting SDQ
-fitY_HC <- lm(rrst_sensitivity ~ sdq + ctq_total, data=df_HC) #IV and M on DV; CTQ and SDQ predicting rrst_sensitivity
-gvlma(fitM_HC) # only skeness not met
-gvlma(fitY_HC)
-
-fitMed_HC <- mediate(fitM_HC, fitY_HC, treat="ctq_total", mediator="sdq")
-summary(fitMed_HC) # nothing
-
-```
-
-## 4.2) Mediation Analysis: Metacognition
-
-```{r}
-#  METACOGNITION
-fitM <- lm(sdq ~ ctq_total,     data=df) #IV on M; CTQ predicting SDQ
-fitY <- lm(metascore ~ sdq + ctq_total, data=df) #IV and M on DV; CTQ and SDQ predicting metascore
-gvlma(fitM) #ASSUMPTIONS NOT satisfied!
-gvlma(fitY) #ASSUMPTIONS NOT satisfied!
-
-fitMed <- mediate(fitM, fitY, treat="ctq_total", mediator="sdq")
-summary(fitMed)
-# Average Causal Mediation Effects (ACME) :  0.002  sig --> there is mediation effect
-# Average Direct Effects (ADE) :  0.042 sig --> there is also a direct effect from ctq to metascore
-# combined indirect and direct effects (Total Effect) :  not sig --> there is no sig total effect
-
-# this may be due to variance that is different across both groups, thus analysis separate per group
-fitM_FND <- lm(sdq ~ ctq_total,     data=df_FND) #IV on M; CTQ predicting SDQ
-fitY_FND <- lm(metascore ~ sdq + ctq_total, data=df_FND) #IV and M on DV; CTQ and SDQ predicting metascore
-gvlma(fitM_FND) #ASSUMPTIONS NOT satisfied!
-gvlma(fitY_FND) #ASSUMPTIONS NOT satisfied!
-
-fitMed_FND <- mediate(fitM_FND, fitY_FND, treat="ctq_total", mediator="sdq")
-summary(fitMed_FND)
-# Average Causal Mediation Effects (ACME) : sig0.018 --> there is mediation effect
-# Average Direct Effects (ADE) :  marginally not sig 0.034--> there is no direct effect from ctq to metascore
-# combined indirect and direct effects (Total Effect) :  not sig --> there is no sig total effect
-
-#Bootstrap to verify 
-fitMedBoot_FND <- mediate(fitM_FND, fitY_FND, boot=TRUE, sims=999, treat="ctq_total", mediator="sdq")
-summary(fitMedBoot_FND) # sig effect for direct effect ; 0.02
-
-
-fitM_HC <- lm(sdq ~ ctq_total,     data=df_HC) #IV on M; CTQ predicting SDQ
-fitY_HC <- lm(metascore ~ sdq + ctq_total, data=df_HC) #IV and M on DV; CTQ and SDQ predicting metascore
-gvlma(fitM_HC) 
-gvlma(fitY_HC)
-
-fitMed_HC <- mediate(fitM_HC, fitY_HC, treat="ctq_total", mediator="sdq")
-summary(fitMed_HC) # nothing
-```
-
-## 4.1B) Mediation Analysis: Metacognition
-
-```{r}
-library(mediation) #Mediation package
-library(gvlma) #Testing Model Assumptions 
-?mediate
-
-#  RRST sensivitiyy
-fitM <- lm(rrst_sensitivity ~ ctq_total,     data=df) #IV on M; CTQ predicting rrst sensitivity
-fitY <- lm(sdq ~ rrst_sensitivity + ctq_total, data=df) #IV and M on DV; CTQ and SDQ predicting rrst_sensitivity
-gvlma(fitM) 
-gvlma(fitY) # ASSUMPTION NOT MET !
-
-fitMed <- mediate(fitM, fitY, treat="ctq_total", mediator="rrst_sensitivity")
-summary(fitMed)
-# Average Causal Mediation Effects (ACME) : not sig --> there is no mediation effect
-# Average Direct Effects (ADE) :  <2e-16 *** sig --> there is a direct effect from rrst to SDQ
-# combined indirect and direct effects (Total Effect) : <2e-16 *** sig --> there is a total effect of the model (driven by the direct effect?!)
-
-#  analysis separate per group
-fitM_FND <- lm(rrst_sensitivity ~ ctq_total,     data=df_FND) #IV on M; CTQ predicting rrst sensitivity
-fitY_FND <- lm(sdq ~ rrst_sensitivity + ctq_total, data=df_FND) #IV and M on DV; CTQ and rrst sebsutuvity predicting sdq
-gvlma(fitM_FND) 
-gvlma(fitY_FND)# ASSUMPTIONS not met!
-
-fitMed_FND <- mediate(fitM_FND, fitY_FND, treat="ctq_total", mediator="rrst_sensitivity")
-summary(fitMed_FND)
-# Average Causal Mediation Effects (ACME) : not sig --> there is NO mediation effect
-# Average Direct Effects (ADE) :  sig 0.006 ** --> there is a direct effect from ctq to respiratory interoception
-# combined indirect and direct effects (Total Effect) :  0.024 * sig --> there is a sig total effect
-
-fitM_HC <- lm(rrst_sensitivity ~ ctq_total,     data=df_HC) #IV on M; CTQ predicting rrst_sensitivity
-fitY_HC <- lm(sdq ~ rrst_sensitivity + ctq_total, data=df_HC) #IV and M on DV; CTQ and rrst_sensitivity predicting SDQ
-gvlma(fitM_HC)
-gvlma(fitY_HC)  #not all assumptions are met!
-
-fitMed_HC <- mediate(fitM_HC, fitY_HC, treat="ctq_total", mediator="rrst_sensitivity")
-summary(fitMed_HC) # nothing
-
-```
-
-## 4.2B) Mediation Analysis: Metacognition
-
-```{r}
-#  METACOGNITION
-fitM <- lm(sdq ~ ctq_total,     data=df) #IV on M; CTQ predicting SDQ
-fitY <- lm(metascore ~ sdq + ctq_total, data=df) #IV and M on DV; CTQ and SDQ predicting metascore
-gvlma(fitM) #ASSUMPTIONS NOT satisfied!
-gvlma(fitY) #ASSUMPTIONS NOT satisfied!
-
-fitMed <- mediate(fitM, fitY, treat="ctq_total", mediator="sdq")
-summary(fitMed)
-# Average Causal Mediation Effects (ACME) :  0.002  sig --> there is mediation effect
-# Average Direct Effects (ADE) :  0.042 sig --> there is also a direct effect from ctq to metascore
-# combined indirect and direct effects (Total Effect) :  not sig --> there is no sig total effect
-
-# this may be due to variance that is different across both groups, thus analysis separate per group
-fitM_FND <- lm(sdq ~ ctq_total,     data=df_FND) #IV on M; CTQ predicting SDQ
-fitY_FND <- lm(metascore ~ sdq + ctq_total, data=df_FND) #IV and M on DV; CTQ and SDQ predicting metascore
-gvlma(fitM_FND) #ASSUMPTIONS NOT satisfied!
-gvlma(fitY_FND) #ASSUMPTIONS NOT satisfied!
-
-fitMed_FND <- mediate(fitM_FND, fitY_FND, treat="ctq_total", mediator="sdq")
-summary(fitMed_FND)
-# Average Causal Mediation Effects (ACME) : sig0.018 --> there is mediation effect
-# Average Direct Effects (ADE) :  marginally not sig 0.034--> there is no direct effect from ctq to metascore
-# combined indirect and direct effects (Total Effect) :  not sig --> there is no sig total effect
-
-#Bootstrap to verify 
-fitMedBoot_FND <- mediate(fitM_FND, fitY_FND, boot=TRUE, sims=999, treat="ctq_total", mediator="sdq")
-summary(fitMedBoot_FND) # sig effect for direct effect ; 0.02
-
-
-fitM_HC <- lm(sdq ~ ctq_total,     data=df_HC) #IV on M; CTQ predicting SDQ
-fitY_HC <- lm(metascore ~ sdq + ctq_total, data=df_HC) #IV and M on DV; CTQ and SDQ predicting metascore
-gvlma(fitM_HC) 
-gvlma(fitY_HC)
-
-fitMed_HC <- mediate(fitM_HC, fitY_HC, treat="ctq_total", mediator="sdq")
-summary(fitMed_HC) # nothing
-```
-
-# 5) SUPPLEMENTARY ANALYSIS: Interoception as dependent variable
-
-### 5.1) Regression Analysis - separate per group
-
-```{r}
-# predciting rrst sensitvity with covariates,
-
-lm<-lm(rrst_sensitivity ~  group + sex + age + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df)
-summary(lm)
-confint(lm, level = 0.95)  
-
-# predciting  rrst metascore with covariates
-lm<-lm(metascore ~ group + sex + age + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df)
-summary(lm)  
-
-
-# predciting  traitPE uing RRST and MAIA with covariates
-lm<-lm(traitPE_maiaRRST ~ group + age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df)
-summary(lm)
-confint(lm, level = 0.95)  
-
-lm<-lm(traitPE_maiaRRST ~  age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_FND)
-summary(lm)
-confint(lm, level = 0.95) 
-
-lm<-lm(traitPE_maiaRRST ~ age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df_HC)
-summary(lm)
-confint(lm, level = 0.95) 
-
-# predciting  traitPE uing RRST and MAIA with covariates
-
-lm<-lm(traitPE_iasRRST ~ group + age + sex + psychotropic_medication + anx_dep_SUM + bmi,
-  data = df)
-summary(lm) 
-
-
-```
-
-## 5.2) Visualization
-
-```{r}
-df_plot <- df %>%
-  mutate(sex = factor(sex, levels = c("1", "2"), labels = c("female", "male"))) %>%
-  mutate(group = factor(group, levels = c("0", "1"), labels = c("HC", "FND")))
-
-# SDQ-RRST_sensitivity
-RRST_sdq <- ggplot(df_plot, aes(x = sdq, y = rrst_sensitivity, color = as.factor(group))) +
-  geom_point() +  # Scatterplot for both groups
-  geom_smooth(method = "lm", se = TRUE) +  # Add regression lines and SE
-  labs(x = "Dissociative Score (SDQ-20)", 
-       y = "Respiratory Sensitivity (RRST)", 
-       title = "Respiratory Interoception (FND vs HC)",
-       color = "Group") +  # Label for the legend
-  theme_minimal() +
-  scale_color_manual(values = c("HC" = "#868686FF", "FND" = "#E95248")) + #custom colors
-  theme(panel.grid = element_blank())  # Remove grid lines
-
-RRST_sdq
-
-# SDQ-metascore
-meta_sdq <- ggplot(df_plot, aes(x = sdq, y = metascore, color = as.factor(group))) +
-  geom_point() +  # Scatterplot for both groups
-  geom_smooth(method = "lm", se = TRUE) +  # Add regression lines and SE
-  labs(x = "Dissociative Score (SDQ-20)", 
-       y = "Respiratory Metacognition (AUC)", 
-       title = "Respiratory Interoception (FND vs HC)",
-       color = "Group") +  # Label for the legend
-  theme_minimal() +
-  scale_color_manual(values = c("HC" = "#868686FF", "FND" = "#E95248")) + #custom colors
-  theme(panel.grid = element_blank())  # Remove grid lines
-meta_sdq
-
-
-library(patchwork)
-# Combine the two plots with labels A and B
-combined_plot <- RRST_sdq + meta_sdq +
-  plot_annotation(tag_levels = 'A') & # Adds labels A and B
-  theme(plot.tag = element_text(face = "bold")) # in bold font
-# Display the combined plot
-print(combined_plot)
-
-
-# Sex-RRST_sensitivity
-RRST_sex <- ggplot(df_plot, aes(x = as.factor(sex), y = rrst_sensitivity, fill = as.factor(group))) +
-  geom_boxplot() +  # Create the box plot
-  geom_jitter(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.75), color = "black", size = 1.5, alpha = 0.6) +  # Add jittered points in black
-  labs(x = "Sex", 
-       y = "TraitPE (HBT-IAS)", 
-       title = "Trait-Prediction-Error HBT-IAS (FND vs HC)",
-       fill = "Group") +  # Label for the legend
-  theme_minimal() +
-  scale_fill_manual(values = c("HC" = "#868686FF", "FND" = "#E95248"))+ #custom colors
-  theme(panel.grid = element_blank())  # Remove grid lines
-RRST_sex
-
-
-# traitPEmaia-Anx-Dep
-traitPEmaia_anxdep <- ggplot(df_plot, aes(x = anx_dep_SUM, y = traitPE_maiaRRST, color = as.factor(group))) +
-  geom_point() +  # Scatterplot for both groups
-  geom_smooth(method = "lm", se = TRUE) +  # Add regression lines and SE
-  labs(x = "Anxiety & Depression Sum Score (STAI-T & BDI-II)", 
-       y = "Trait-PredictionError (RRST-MAIA)", 
-       title = "Interoceptive Trait-Prediction Error (FND vs HC)",
-       color = "Group") +  # Label for the legend
-  theme_minimal() +
-  scale_color_manual(values = c("HC" = "#868686FF", "FND" = "#E95248")) + #custom colors
-  theme(panel.grid = element_blank())  # Remove grid lines
-traitPEmaia_anxdep
 ```
