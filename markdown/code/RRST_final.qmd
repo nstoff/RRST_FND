@@ -241,6 +241,20 @@ res # no sig difference between groups
 res<-wilcox.test(df$bmi[df$group=="1"], df$bmi[df$group=="0"])
 res # no sig difference between groups
 
+
+
+# SIMPLE CORRELATION OF RRST sensitivity and symptom severity scores - including SDQ
+cor1<-t.test(df$rrst_sensitivity[df$group=="1"], df$rrst_sensitivity[df$group=="0"])
+cor2<-t.test(df$maia_total[df$group=="1"], df$maia_total[df$group=="0"])
+cor3<-t.test(df$ias[df$group=="1"], df$ias[df$group=="0"])
+p_values <- c(cor1$p.value, cor2$p.value, cor3$p.value) # extract pvalues
+p_adjusted <- p.adjust(p_values, method = "bonferroni") # Correct p-values for multiple comparisons
+results_interoceptiongroupdiff <- data.frame(
+  Comparison = c("FND vs HC: rrst_sensitivity", "FND vs HC: MAIA", "FND vs HC: IAS"),
+  Original_P = p_values,
+  Adjusted_P = p_adjusted)
+print(results_interoceptiongroupdiff)
+
 ```
 
 ## 2.1) Demographic Summary Table
@@ -332,7 +346,6 @@ tbl1 <- Data.t %>%
 # Display the table
 tbl1
 
-
 ```
 
 ## 2.2) FND Summary Table
@@ -347,18 +360,22 @@ df_FND <- df_FND %>%
 
 as.numeric(df_FND$duration_months)
 
-# Select only the defined variables
-df_tbl <- df_FND %>%
-  mutate(sex = factor(sex, levels = c("1", "2"), labels = c("female", "male"))) 
+# Select the relevant columns and include the calculated duration
+Data.t <- dplyr::select(df_FND, c("sex", "duration_months", "fds", "motor", "weakness", "sensory", "pppd", "cognitive"))
 
-library(gtsummary)
-library(dplyr)
+Data.t <- Data.t  %>%
+  mutate(sex = factor(sex, levels = c("1", "2"), labels = c("female", "male")))
 
-# Select relevant columns from df_tbl
-Data.t <- select(df_tbl, c("sex", "duration_months", "fds", "motor", "weakness", "sensory", "pppd", "cognitive"))
+# Convert 0/1 values to "no"/"yes" for table, so that it will only show the count "yes"
+Data.t <- Data.t %>%
+  mutate(
+    across(c(fds, motor, weakness, sensory, pppd, cognitive), 
+           ~ factor(.x, levels = c(0, 1), labels = c("no", "yes")))
+  ) %>%
+  dplyr::select(sex, duration_months, fds, motor, weakness, sensory, pppd, cognitive)
 
-# Create the summary table
-tbl <- Data.t %>%
+# Create the summary table (which symptoms present with how many patients (per patient more symtpoms possible))
+tbl1 <- Data.t %>%
   tbl_summary(
     by = sex,
     missing = "no",
@@ -370,8 +387,8 @@ tbl <- Data.t %>%
       sensory = "{n} ({p})",
       pppd = "{n} ({p})",
       cognitive = "{n} ({p})"
-      ),
-    digits = list(duration_months = 1,fds = 1,motor = 1,weakness = 1,sensory = 1,pppd = 1,cognitive = 1),
+    ),
+    digits = list(medication = 1, duration_months = 1, fds = 1, motor = 1, weakness = 1, sensory = 1, pppd = 1, cognitive = 1),
     label = list(
       sex = "Sex",
       duration_months = "Symptom Duration [in months]",
@@ -386,10 +403,20 @@ tbl <- Data.t %>%
   modify_header(list(label ~ "**Variable**")) %>%
   modify_caption("**Clinical Characteristics**") %>%
   modify_spanning_header(c("stat_1", "stat_2") ~ "**Group**") %>%
-  add_overall(last = FALSE)
+  add_p(
+    test = list(
+      duration_months = "t.test", 
+      fds = "fisher.test", 
+      motor = "fisher.test",
+      weakness = "fisher.test", 
+      sensory = "fisher.test", 
+      ctq_total = "fisher.test", 
+      pppd = "fisher.test", 
+      cognitive = "fisher.test"
+    )  
+    ) %>%   add_overall(last = FALSE)
 
-# Print the summary table
-tbl
+tbl1
 ```
 
 ## 2.3) Visualization of Group Differences
@@ -623,7 +650,7 @@ filtered_df <- df_FND[df_FND$sfmdrs != 0, ]
 excluded_count <- sum(df_FND$sfmdrs == 0)
 excluded_count 
 
-# SIMPLE CORRELATION OF RRST sensitivity and symptom severity scores - includign SDQ
+# SIMPLE CORRELATION OF RRST sensitivity and symptom severity scores - including SDQ
 cor1 <- cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson") # r = -0.3828185, p-value = 0.01129
 cor2 <- cor.test(filtered_df$rrst_sensitivity, filtered_df$sfmdrs, method = "pearson") 
 cor3 <- cor.test(df_FND$rrst_sensitivity, df_FND$cgi, method = "pearson") 
@@ -851,5 +878,6 @@ cor.test(df$ctq_total, df$rrst_sensitivity, method = "pearson")  # r = -0.026217
 # separate per group
 cor.test(df$ctq_total[df$group=="1"], df$rrst_sensitivity[df$group=="1"],method = "pearson")# no sig
 cor.test(df$ctq_total[df$group=="0"], df$rrst_sensitivity[df$group=="0"], method = "pearson")# no sig
+
 
 ```
