@@ -213,7 +213,8 @@ df <- df %>%
 ### 1.2 Group Differences as Baseline of Variables of Interst ---------------------------------------------
 # parametric t-test for NORMALLY distributed data
 res<-t.test(df$rrst_sensitivity[df$group=="1"], df$rrst_sensitivity[df$group=="0"])
-res # SIG difference between groups
+res # SIG difference between group
+
 res<-t.test(df$stai_t[df$group=="1"], df$stai_t[df$group=="0"])
 res # SIG difference between groups with p < 0.05
 res<-t.test(df$maia_total[df$group=="1"], df$maia_total[df$group=="0"])
