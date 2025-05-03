@@ -1,0 +1,33 @@
+### Linear Model Summary ###
+
+Call:
+lm(formula = sdq ~ rrst_sensitivity * group + psychotropic_medication, 
+    data = df)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-23.741  -4.157  -1.555   3.758  38.900 
+
+Coefficients:
+                         Estimate Std. Error t value Pr(>|t|)    
+(Intercept)               22.4719     4.8244   4.658 1.18e-05 ***
+rrst_sensitivity           0.3626     1.2835   0.282 0.778274    
+group1                    21.9827     5.8059   3.786 0.000286 ***
+psychotropic_medication1   7.2866     2.8532   2.554 0.012460 *  
+rrst_sensitivity:group1   -3.0980     1.5711  -1.972 0.051916 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 9.575 on 84 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.4898,	Adjusted R-squared:  0.4655 
+F-statistic: 20.16 on 4 and 84 DF,  p-value: 1.146e-11
+
+
+### Confidence Intervals ###
+                             2.5 %      97.5 %
+(Intercept)              12.878160 32.06567055
+rrst_sensitivity         -2.189855  2.91497870
+group1                   10.436956 33.52837270
+psychotropic_medication1  1.612716 12.96052136
+rrst_sensitivity:group1  -6.222352  0.02630844

@@ -36,6 +36,8 @@ library(car)
 library(stringr)  
 library(lubridate)
 library(Hmisc)
+library(writexl)
+
 
 ### 0.0 PREPARATION -----------------------------------------------------------
 # load prepared and cleaned file from 00_preparation: df_yyyymmdd.csv
@@ -215,6 +217,11 @@ df <- df %>%
 res<-t.test(df$rrst_sensitivity[df$group=="1"], df$rrst_sensitivity[df$group=="0"])
 res # SIG difference between group
 
+mean(df$rrst_sensitivity[df$group=="1"])
+mean(df$rrst_sensitivity[df$group=="0"])
+sd(df$rrst_sensitivity[df$group=="1"])
+sd(df$rrst_sensitivity[df$group=="0"])
+
 res<-t.test(df$stai_t[df$group=="1"], df$stai_t[df$group=="0"])
 res # SIG difference between groups with p < 0.05
 res<-t.test(df$maia_total[df$group=="1"], df$maia_total[df$group=="0"])
@@ -228,7 +235,9 @@ res # no sig difference between groups
 res<-wilcox.test(df$metascore[df$group=="1"], df$metascore[df$group=="0"])
 res # no sig difference between groups
 res<-wilcox.test(df$ias[df$group=="1"], df$ias[df$group=="0"])
-res # SIG difference between groups
+res # SIG difference between groups with p < 0.05
+res<-wilcox.test(df$maia_note[df$group=="1"], df$maia_note[df$group=="0"])
+res # no sig difference between groups
 res<-wilcox.test(df$bdi[df$group=="1"], df$bdi[df$group=="0"])
 res # SIG difference between groups with p < 0.05
 res<-wilcox.test(df$stai_s[df$group=="1"], df$stai_s[df$group=="0"])
@@ -347,6 +356,9 @@ tbl1 <- Data.t %>%
 # Display the table
 tbl1
 
+    # save table as excel
+    tbl1_df <- tbl1 %>% as_tibble()
+    write_xlsx(tbl1_df, "2.1_Table_demographics.xlsx")
 ```
 
 ## 2.2) FND Summary Table
@@ -418,6 +430,10 @@ tbl1 <- Data.t %>%
     ) %>%   add_overall(last = FALSE)
 
 tbl1
+
+  # save table as excel
+  tbl1_df <- tbl1 %>% as_tibble()
+  write_xlsx(tbl1_df, "2.2_Table_clinical_characteristics.xlsx")
 ```
 
 ## 2.3) Visualization of Group Differences
@@ -432,7 +448,7 @@ df$group <- as.factor(df$group)
 # plot function for  normally dsitributed data, allowing the use of the t test (and the mean)
 plotViolinGroups_mean <- function(df, var , tit ){ 
   plot <-ggplot(df, aes(x=group, y=var, fill=group)) + # this is just the ground structure. We have group on x axis, our variable score on y, and we want to seperate the groups. 
-    geom_violin(show.legend = FALSE, width = 0.7, trim = FALSE, alpha = 0.8)+ # here we say what kind of plot we want to make; namely violin to show the distrubition of the original data (width to make it less wide and thus prettier) 
+    geom_violin(show.legend = FALSE, width = 0.7, trim = FALSE, alpha = 0.8)+ # here we say what kind of plot we want to make; violin to show the distrubition of the original data 
     stat_summary(show.legend = FALSE, fun = mean, geom = "point", color = "black", size = 2) +  # Add median point without legend
     labs(y = "Score") + # These are just the different titles
     theme_classic()+ # here we have the background, simple white :)
@@ -445,10 +461,10 @@ plotViolinGroups_mean <- function(df, var , tit ){
   return(plot)
 }
 
-# plot function for non normally dsitributed data, requireing the wilcox test (and the median)
+# plot function for non normally dsitributed data; the wilcox test (and the median)
 plotViolinGroups_median <- function(df, var , tit ){ 
   plot <-ggplot(df, aes(x=group, y=var, fill=group)) + # this is just the ground structure. We have group on x axis, our variable score on y, and we want to seperate the groups. 
-    geom_violin(show.legend = FALSE, width = 0.7, trim = FALSE, alpha = 0.8)+ # here we say what kind of plot we want to make; namely violin to show the distrubition of the original data (width to make it less wide and thus prettier) 
+    geom_violin(show.legend = FALSE, width = 0.7, trim = FALSE, alpha = 0.8)+ # here we say what kind of plot we want to make;  violin to show the distrubition of the original data
     stat_summary(show.legend = FALSE, fun = median, geom = "point", color = "black", size = 2) +  # Add median point without legend
     labs(y = "Score") + # These are just the different titles
     theme_classic()+ # here we have the background, simple white :)
@@ -462,43 +478,70 @@ plotViolinGroups_median <- function(df, var , tit ){
 }
 p1 <- plotViolinGroups_median(df,df$bdi,"BDI - Depression")+ ggpubr::stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 p1
+  pdf("2.3_Plot_BDI_violin.pdf")
+  p1
+  dev.off()
 
 
 p2 <- plotViolinGroups_mean(df,df$stai_s,"STAI - State Anxiety")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
 p3 <- plotViolinGroups_median(df,df$stai_t,"STAI - Trait Anxiety")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 gridExtra::grid.arrange(p2, p3, ncol = 2)
-
+  pdf("2.3_Plot_STAI_violin.pdf")
+  gridExtra::grid.arrange(p2, p3, ncol = 2)
+  dev.off()
 
 p4 <- plotViolinGroups_median(df,df$ctq_total,"CTQ - Childhood Trauma")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 p4
+  pdf("2.3_Plot_CTQ_violin.pdf")
+  p4
+  dev.off()
 
 p5 <- plotViolinGroups_median(df,df$sdq,"SDQ-20 - Dissociation")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 p5
+    pdf("2.3_Plot_SDQ-20_violin.pdf")
+  p5
+  dev.off()
 
 
 p6 <- plotViolinGroups_mean(df,df$maia_total,"MAIA - Interoceptive Awareness")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
 p6
-
+  pdf("2.3_Plot_MAIA_violin.pdf")
+  p6
+  dev.off()
+  
+p6noticing <- plotViolinGroups_mean(df,df$maia_note,"MAIA subscale - Noticing")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+p6noticing
+  pdf("2.3_Plot_MAIA_noticing_violin.pdf")
+  p6noticing
+  dev.off()
 
 p7 <- plotViolinGroups_median(df,df$ias,"IAS - Interoceptive Accuracy")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 p7
+  pdf("2.3_Plot_IAS_violin.pdf")
+  p7
+  dev.off()
 
 
 p8 <- plotViolinGroups_mean(df,df$traitPE_maiaRRST,"TraitPE MAIA-RRST")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
 p9 <- plotViolinGroups_mean(df,df$traitPE_iasRRST,"TraitPE IAS-RRST")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
 gridExtra::grid.arrange(p8, p9, ncol = 2)
+  pdf("2.3_Plots_TPE_violin.pdf")
+  gridExtra::grid.arrange(p8, p9, ncol = 2)
+  dev.off()
 
 
 p10 <- plotViolinGroups_mean(df,df$rrst_sensitivity,"Respiratory Sensitivity")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
 p11 <- plotViolinGroups_median(df,df$metascore,"Respiratory Metacognition")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 gridExtra::grid.arrange(p10, p11, ncol = 2)
-
+  pdf("2.3_Plots_RRST_violin.pdf")
+  gridExtra::grid.arrange(p10, p11, ncol = 2)
+  dev.off()
 
 # Table for dependent Variables: group differences
 df_tbl <- df %>%
   mutate(group = factor(group, levels = c("0", "1"), labels = c("HC", "FND"))) 
   
-Data.t <- select(df_tbl, c("group", "maia_total","traitPE_maiaRRST", "ias", "traitPE_iasRRST", "rrst_sensitivity" , "metascore"))
+Data.t <- select(df_tbl, c("group", "maia_total","maia_note", "traitPE_maiaRRST", "ias", "traitPE_iasRRST", "rrst_sensitivity" , "metascore"))
 library(gtsummary)
 tbl2 <- Data.t %>%
   tbl_summary(
@@ -506,15 +549,17 @@ tbl2 <- Data.t %>%
     missing = "no",
     statistic = list(
       maia_total = "{mean} ({sd})",
+      maia_note = "{mean} ({sd})",
       traitPE_maiaRRST = "{mean} ({sd})",
       ias = "{median} ({IQR})",
       traitPE_iasRRST = "{mean} ({sd})",
       rrst_sensitivity = "{mean} ({sd})",
       metascore = "{median} ({IQR})"
     ),
-    digits = list(maia_total = 1, traitPE_maiaRRST = 1, ias = 1, traitPE_iasRRST = 1, 
+    digits = list(maia_total = 1, maia_note = 1, traitPE_maiaRRST = 1, ias = 1, traitPE_iasRRST = 1, 
                   rrst_sensitivity = 2, metascore = 2),
     label = list(maia_total= "Interoceptive Awareness Self-Report - MAIA, Mean, (SD)",
+                 maia_note= "MAIA subscale Noticing, Mean, (SD)",
                  traitPE_maiaRRST= "Respiratory Trait-Prediction-Error, MAIA-RRST, Mean (SD)",
                  ias= "Interoceptive Accuracy Self-Report - IAS, Median (IQR)",
                  traitPE_iasRRST = "Respiratory Trait-Prediction-Error, IAS-RRST, Mean (SD)",
@@ -527,7 +572,8 @@ tbl2 <- Data.t %>%
   modify_spanning_header(c("stat_1", "stat_2") ~ "**Group**") %>%
   add_p(
     test = list(
-      maia_total = "t.test",            
+      maia_total = "t.test",  
+      maia_note = "t.test",  
       traitPE_maiaRRST = "t.test",            
       ias = "wilcox.test",        
       traitPE_iasRRST = "t.test", 
@@ -536,6 +582,10 @@ tbl2 <- Data.t %>%
     ) %>%
     add_overall(last = FALSE)
 tbl2
+
+	tbl2_df <- tbl2 %>% as_tibble()
+	write_xlsx(tbl2_df, "2.3_Table_dependent_variables.xlsx")
+
 
 ```
 
@@ -582,6 +632,9 @@ print(cohens_d_meta) # cohens d of -0.128 means with an effect size of 0.128 FND
 
 cohens_d_maia <- calculate_cohens_d(df, "maia_total", "group", 1, 0) # group 1=FND, group=0 HC
 print(cohens_d_maia) # cohens d of -0.786 means with an effect size of 0.786 FND has LOWER values than HC
+
+cohens_d_maia_note <- calculate_cohens_d(df, "maia_note", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_maia_note) # 
 
 cohens_d_ias <- calculate_cohens_d(df, "ias", "group", 1, 0) # group 1=FND, group=0 HC
 print(cohens_d_ias) # cohens d of -0.651 means with an effect size of 0.651 FND has LOWER values than HC
@@ -663,6 +716,10 @@ results_rrst <- data.frame(
   Adjusted_P = p_adjusted)
 print(results_rrst)
 
+# Save results as a text file
+write.table(results_rrst, "3.1_corr_RRST_symptoms.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+
+
 cor.test(df$metascore, df$sdq, method = "pearson")  
 # p-value = 0.01012, cor = -0.2683359 
 
@@ -677,6 +734,9 @@ results_meta <- data.frame(
   Original_P = p_values,
   Adjusted_P = p_adjusted)
 print(results_meta)
+
+  # Save results as a text file
+  write.table(results_rrst, "3.1_corr_meta_symptoms.txt", sep = "\t", row.names = FALSE, quote = FALSE)
 
 
 # TPE with IAS
@@ -734,6 +794,10 @@ results <- data.frame(
 
 # View results
 print(results)
+
+  # Save results as a text file
+  write.table(results_rrst, "3.1_corr_intero_symptoms.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+
 ```
 
 ## 3.2 ) Identifying Covariates for Regression Analysis
@@ -795,10 +859,25 @@ sdq_lm <- lm(formula = sdq ~  rrst_sensitivity*group + psychotropic_medication,
 summary(sdq_lm)  
 confint(sdq_lm, level = 0.95)  
 
+  # Save as a text file
+  lm_summary <- capture.output(summary(sdq_lm))
+  lm_confint <- capture.output(confint(sdq_lm, level = 0.95))
+  lm_results <- c("### Linear Model Summary ###", lm_summary, 
+                "", "### Confidence Intervals ###", lm_confint)
+  writeLines(lm_results, "3.3_lm_rrst_med.txt")
+
+
 sdq_lm_affective <- lm(formula = sdq ~  rrst_sensitivity*group + psychotropic_medication + anx_dep_SUM,
                  data = df) 
 summary(sdq_lm_affective)  # 
 confint(sdq_lm_affective, level = 0.95)  
+
+  # Save as a text file
+  lm_summary <- capture.output(summary(sdq_lm_affective))
+  lm_confint <- capture.output(confint(sdq_lm_affective, level = 0.95))
+  lm_results <- c("### Linear Model Summary ###", lm_summary, 
+                "", "### Confidence Intervals ###", lm_confint)
+  writeLines(lm_results, "3.3_lm_rrst_med_aff.txt")
 
 
 # metascore
@@ -807,11 +886,24 @@ sdq_lm <- lm(formula = sdq ~  metascore*group + psychotropic_medication,
 summary(sdq_lm)  # 
 confint(sdq_lm, level = 0.95)  
 
+  # Save as a text file
+  lm_summary <- capture.output(summary(sdq_lm))
+  lm_confint <- capture.output(confint(sdq_lm, level = 0.95))
+  lm_results <- c("### Linear Model Summary ###", lm_summary, 
+                "", "### Confidence Intervals ###", lm_confint)
+  writeLines(lm_results, "3.3_lm_meta_med.txt")
 
 sdq_lm_affective <- lm(formula = sdq ~  metascore*group + psychotropic_medication + anx_dep_SUM,
                  data = df) 
 summary(sdq_lm_affective)  # 
 confint(sdq_lm_affective, level = 0.95)  
+
+  # Save as a text file
+  lm_summary <- capture.output(summary(sdq_lm_affective))
+  lm_confint <- capture.output(confint(sdq_lm_affective, level = 0.95))
+  lm_results <- c("### Linear Model Summary ###", lm_summary, 
+                "", "### Confidence Intervals ###", lm_confint)
+  writeLines(lm_results, "3.3_lm_meta_med_aff.txt")
 
 ```
 
