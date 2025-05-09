@@ -52,7 +52,8 @@ df_RRST[factor_variables] <- lapply(df_RRST[factor_variables], as.factor)
 # numeric variables
 numeric_variables <- c('age', 'bmi', 'bdi', 'stai_s', 'stai_t', 'maia_total',
                      'sdq', 'ctq_total', 'ias', 'rrst_sensitivity', 'rrst_slope', 'average_RT', 'metascore',
-                     'unpleasantness', 'asthma', 'dizziness', 'breathlessness')
+                     'unpleasantness', 'asthma', 'dizziness', 'breathlessness',
+                     'correct_RT', 'incorrect_RT')
 # Apply as.numeric to the selected columns
 df_RRST[numeric_variables] <- lapply(df_RRST[numeric_variables], as.numeric)
 
@@ -838,7 +839,7 @@ confint(rrst_anxiety, level = 0.95)
 corr_matrix <- cor(df[, c("breathlessness","dizziness", "unpleasantness", "asthma")], use = "complete.obs")
 
 # Set the cutoff for high correlations, that we then want to exclude
-cutoff <- 0.7
+cutoff <- 0.5
 
 # Find the indices of correlations that are greater than 0.7 and exclude self-correlations (diagonal)
 high_corr <- which(abs(corr_matrix) > cutoff & abs(corr_matrix) < 1, arr.ind = TRUE)
@@ -853,10 +854,10 @@ high_corr_pairs <- data.frame(
 # View the pairs
 print(high_corr_pairs) # no high correlation; no general factor of discomfort
 
-# RRST Sensitivity GROUP (again to compare the baseline model)
-rrst_discomfort <- lm(formula = rrst_sensitivity ~  group,
-                 data = df) 
-summary(rrst_discomfort)  # GROUP
+cor.test(df$breathlessness, df$rrst_sensitivity)
+cor.test(df$asthma, df$rrst_sensitivity)
+cor.test(df$unpleasantness, df$rrst_sensitivity)
+cor.test(df$dizziness, df$rrst_sensitivity)
 
 # RRST Sensitivity GROUP controlled for discomfort of the task
 rrst_discomfort <- lm(formula = rrst_sensitivity ~  group + unpleasantness,
@@ -973,9 +974,67 @@ ggsave("3.3_RRST_RT.tiff",
 RTplot <- plotViolinGroups_median(df_RT,df_RT$average_RT,"Average Response Time")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
 RTplot
 
-
 ggsave("3.3_RT.tiff", 
        plot = RTplot, 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "tiff", 
+       compression = "lzw")
+
+######## long data format
+
+######
+# Convert to long format
+Data.RT <- select(df_RT, c("group", "incorrect_RT", "correct_RT", "pcode")) %>%
+  mutate(group = factor(group, levels = c("0", "1"), labels = c("HC", "FND")))
+
+df_long <- Data.RT %>%
+  pivot_longer(cols = c(correct_RT, incorrect_RT),
+               names_to = "accuracy",
+               values_to = "RT") %>%
+  mutate(
+    accuracy = factor(accuracy, levels = c("correct_RT", "incorrect_RT"),
+                      labels = c("Correct", "Incorrect")),
+    group = factor(group, levels = c("FND", "HC")),
+    group_accuracy = paste(group, accuracy, sep = "_")
+  )
+
+# Define color palette
+group_colors <- c("FND" = "#E95248", "HC" = "#868686FF")
+fill_colors <- c("FND_Correct" = "#f4cccc", 
+                 "FND_Incorrect" = "#E95248",
+                 "HC_Correct" = "#bcbcbc", 
+                 "HC_Incorrect" = "#868686FF")
+
+# Within-group comparisons (paired)
+within_group_tests <- df_long %>%
+  group_by(group) %>%
+  wilcox_test(RT ~ accuracy, paired = TRUE) %>%
+  add_significance() %>%
+  mutate(group_accuracy = paste(group, "Correct_vs_Incorrect", sep = "_")) %>%
+  add_xy_position(x = "group_accuracy", dodge = 0.6)
+
+# Between-group comparisons (unpaired)
+between_group_tests <- df_long %>%
+  group_by(accuracy) %>%
+  wilcox_test(RT ~ group, paired = FALSE) %>%
+  add_significance() %>%
+  mutate(group_accuracy = paste("FND", accuracy, sep = "_")) %>%  # use FND_* for x-position
+  add_xy_position(x = "group_accuracy", dodge = 0.6)
+
+violin_plots_RTs <- ggviolin(df_long, x = "group_accuracy", y = "RT",
+         fill = "group_accuracy", palette = fill_colors,
+         add = "jitter", width = 1, trim = FALSE) +
+  labs(title = "Reaction Times by Group and Accuracy",
+       x = NULL, y = "Reaction Time (RT)") +
+  theme_classic() +
+  theme(legend.position = "none")
+violin_plots_RTs
+
+ggsave("3.3_violin_plots_RTs.tiff", 
+       plot = violin_plots_RTs,
        dpi = 600, 
        width = 6, 
        height = 4, 
