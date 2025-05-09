@@ -17,7 +17,7 @@ psychotropic_medication1   5.78845    2.99396   1.933   0.0566 .
 anx_dep_SUM                0.10755    0.06037   1.782   0.0785 .
 metascore:group1         -70.57624   42.75691  -1.651   0.1026  
 ---
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Residual standard error: 9.439 on 83 degrees of freedom
   (2 observations deleted due to missingness)
@@ -27,9 +27,9 @@ F-statistic: 17.29 on 5 and 83 DF,  p-value: 1.088e-11
 
 ### Confidence Intervals ###
                                  2.5 %      97.5 %
-(Intercept)               -27.36266743  58.1852147
-metascore                 -67.16139875  80.6729973
-group1                      2.06405567 100.6346378
+(Intercept)               -27.36266743  58.1852148
+metascore                 -67.16139890  80.6729973
+group1                      2.06405554 100.6346377
 psychotropic_medication1   -0.16641925  11.7433184
 anx_dep_SUM                -0.01252055   0.2276273
-metascore:group1         -155.61801637  14.4655267
+metascore:group1         -155.61801619  14.4655269

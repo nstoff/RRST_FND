@@ -16,7 +16,7 @@ group1                    21.9827     5.8059   3.786 0.000286 ***
 psychotropic_medication1   7.2866     2.8532   2.554 0.012460 *  
 rrst_sensitivity:group1   -3.0980     1.5711  -1.972 0.051916 .  
 ---
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Residual standard error: 9.575 on 84 degrees of freedom
   (2 observations deleted due to missingness)
