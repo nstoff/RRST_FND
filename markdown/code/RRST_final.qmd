@@ -984,6 +984,10 @@ ggsave("3.3_RT.tiff",
        compression = "lzw")
 
 ######## long data format
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(rstatix)
 
 ######
 # Convert to long format
