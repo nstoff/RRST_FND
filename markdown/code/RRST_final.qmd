@@ -265,8 +265,6 @@ res<-wilcox.test(df$rrst_slope[df$group=="1"], df$rrst_slope[df$group=="0"])
 res # no sig difference between groups (p = 0.0629)
 res<-wilcox.test(df$rrst_slope_log[df$group=="1"], df$rrst_slope_log[df$group=="0"])
 res # still same result; confirming the data is the same 
-res<-wilcox.test(df$average_RT[df$group=="1"], df$average_RT[df$group=="0"])
-res # no sig difference between groups 
 res<-wilcox.test(df$ias[df$group=="1"], df$ias[df$group=="0"])
 res # SIG difference between groups with p < 0.05
 res<-wilcox.test(df$maia_note[df$group=="1"], df$maia_note[df$group=="0"])
@@ -854,11 +852,28 @@ high_corr_pairs <- data.frame(
 # View the pairs
 print(high_corr_pairs) # no high correlation; no general factor of discomfort
 
-cor.test(df$breathlessness, df$rrst_sensitivity)
-cor.test(df$asthma, df$rrst_sensitivity)
-cor.test(df$unpleasantness, df$rrst_sensitivity)
-cor.test(df$dizziness, df$rrst_sensitivity)
+### calculate correlations to respiratory sensitivity (and control for multiple comparision)
+# Run all correlations and store p-values
+p_values <- c(
+  cor.test(df$breathlessness, df$rrst_sensitivity)$p.value,
+  cor.test(df$asthma, df$rrst_sensitivity)$p.value,
+  cor.test(df$unpleasantness, df$rrst_sensitivity)$p.value,
+  cor.test(df$dizziness, df$rrst_sensitivity)$p.value
+)
 
+# Apply FDR correction
+p_adjusted <- p.adjust(p_values, method = "fdr")
+
+# Optional: associate each result with variable name
+results <- data.frame(
+  variable = c("breathlessness", "asthma", "unpleasantness", "dizziness"),
+  raw_p = p_values,
+  p_fdr = p_adjusted
+)
+
+print(results)
+
+## testing linear models for the effect on the idneitified group difference
 # RRST Sensitivity GROUP controlled for discomfort of the task
 rrst_discomfort <- lm(formula = rrst_sensitivity ~  group + unpleasantness,
                  data = df) 
@@ -925,6 +940,15 @@ df_RT_FND <- df_RT[df_RT$group == "1", ]
 df_RT %>% # within our dataset
   group_by(group) %>% # we group by our variable group (FND vs HC)
   get_summary_stats(average_RT, type = "mean_sd") # and based on these groups, we want the statistics in age, including mean and sd
+
+median(df$average_RT[df$group=="1"])
+median(df$average_RT[df$group=="0"])
+IQR(df$average_RT[df$group=="1"])
+IQR(df$average_RT[df$group=="0"])
+
+res<-wilcox.test(df$average_RT[df$group=="1"], df$average_RT[df$group=="0"])
+res # no sig difference between groups 
+
 
 ## first we test whether reaction time correlates with the sensitivity score (as in, whether or not the sensitivity score is mirroring the impulsiveness or the jumping to conclusion)
 
@@ -1328,7 +1352,7 @@ confint(sdq_lm_affective_HC, level = 0.95)
 
 ```
 
-# 5) Modeling Confidence Data (R-script from Reviewer 3)
+# 5) Modeling Accuracy Interaction (R-script from Reviewer 3)
 
 ```{r}
 library(tidyverse)
@@ -1384,7 +1408,7 @@ rrst_data <- rrst_data %>%
   )
 
 # Model: Confidence ~ Stimulus × Accuracy × Group + (1|pcode)
-conf_fit <- glmmTMB(confidence ~ stimLevel * ResponseAccuracy * group + (1 | pcode),
+conf_fit <- glmmTMB(confidence ~ stimLevel * ResponseAccuracy * group + (1 | pcode) + (1 | stimLevel),
                    data = rrst_data,
                    family = ordbeta(),
                    start = list(psi = c(0, 1)))
@@ -1438,7 +1462,7 @@ combined_plot <- plot_group_accuracy / plot_stim_acc_group +
 
 print(combined_plot)
 
-ggsave("5_Accuracy_interactions.tiff", 
+ggsave("5_Accuracy_interactions_GROUP.tiff", 
        plot = combined_plot, 
        dpi = 600, 
        width = 6, 
@@ -1447,5 +1471,72 @@ ggsave("5_Accuracy_interactions.tiff",
        device = "tiff", 
        compression = "lzw")
 
+```
+## 5.2) Interaction with SDQ
+```{r}
+# Model: Confidence ~ Stimulus × Accuracy × Group + (1|pcode)
+conf_fit <- glmmTMB(confidence ~ stimLevel * ResponseAccuracy * sdq + (1 | pcode) + (1 | stimLevel),
+                   data = rrst_data,
+                   family = ordbeta(),
+                   start = list(psi = c(0, 1)))
+
+summary(conf_fit)
+
+# Model summary table
+tab_model(conf_fit,
+         pred.labels = c("Intercept",
+                         "Stimulus Intensity",
+                         "Response Accuracy",
+                         "SDQ",
+                         "Stim × Accuracy",
+                         "Stim × SDQ",
+                         "Accuracy × SDQ",
+                         "Stim × Accuracy × SDQ"),
+         dv.labels = "Confidence",
+         file = "RRST_confidence_model.doc")
+
+# Define palette
+color_palette <- c("Correct" = "#1b9e77", "Incorrect" = "#d95f02")
+
+# Plot 1: SDQ × Accuracy Interaction
+plot_sdq_accuracy <- plot_model(conf_fit, type = "pred", terms = c("sdq", "ResponseAccuracy")) +
+ scale_color_manual(values = color_palette) +
+ labs(title = "SDQ and Accuracy Interaction",
+      x = "SDQ",
+      y = "Predicted Confidence") +
+ theme_minimal(base_size = 14) +
+ theme(legend.position = "top",
+       plot.title = element_text(face = "bold", hjust = 0.5),
+       axis.title = element_text(size = 16),
+       axis.text = element_text(size = 14))
+
+# Plot 2: Stimulus × Accuracy × SDQ Interaction
+plot_stim_acc_sdq <- plot_model(conf_fit, type = "pred", terms = c("stimLevel", "ResponseAccuracy", "sdq")) +
+  scale_color_manual(values = color_palette) +
+  scale_fill_manual(values = color_palette) + 
+  labs(title = "Stimulus Intensity × Accuracy × SDQ Interaction",
+       x = "Stimulus Intensity",
+       y = "Predicted Confidence") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "top",
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14))
+
+# Combine plots
+combined_plot <- plot_sdq_accuracy / plot_stim_acc_sdq +
+ plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+
+print(combined_plot)
+
+ggsave("5_Accuracy_interactions_SDQ.tiff", 
+       plot = combined_plot, 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "tiff", 
+       compression = "lzw")
 
 ```
+
