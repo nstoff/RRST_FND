@@ -1,0 +1,10 @@
+Participant code:		P042
+R-peak detection threshold:	70872.000000
+Optimal % of the mean variance inside of 50ms pre-R peak interval:	0.8
+Best ECG channel used for the detection:	1
+HeartBeat rate per minute(part1):	89
+HeartBeat rate per minute(part2):	90
+HeartBeat rate per minute(mean):	89
+Internal Threshold used in LIBROW R-peak detection script for ECG channel 1:	2
+Internal Threshold used in LIBROW R-peak detection script for ECG channel 2:	3
+Date of the processing:		19-Jun-2024 16:27:39

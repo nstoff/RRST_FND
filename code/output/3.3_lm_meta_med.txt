@@ -1,0 +1,33 @@
+### Linear Model Summary ###
+
+Call:
+lm(formula = sdq ~ metascore * group + psychotropic_medication, 
+    data = df)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-25.427  -3.991  -1.279   3.525  38.022 
+
+Coefficients:
+                         Estimate Std. Error t value Pr(>|t|)   
+(Intercept)                18.253     21.722   0.840   0.4031   
+metascore                   9.522     37.609   0.253   0.8007   
+group1                     54.342     25.040   2.170   0.0328 * 
+psychotropic_medication1    7.997      2.760   2.897   0.0048 **
+metascore:group1          -73.283     43.279  -1.693   0.0941 . 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 9.56 on 84 degrees of freedom
+  (2 observations deleted due to missingness)
+Multiple R-squared:  0.4914,	Adjusted R-squared:  0.4672 
+F-statistic: 20.29 on 4 and 84 DF,  p-value: 1.005e-11
+
+
+### Confidence Intervals ###
+                               2.5 %    97.5 %
+(Intercept)               -24.944466  61.44956
+metascore                 -65.266950  84.31116
+group1                      4.546173 104.13700
+psychotropic_medication1    2.508047  13.48622
+metascore:group1         -159.348639  12.78268

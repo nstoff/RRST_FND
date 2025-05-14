@@ -1,0 +1,1618 @@
+---
+title: "RRST : Analysis - sample excluding outlier"
+author: "Natascha Stoffel"
+date: "`r date()`"
+format:
+  html:
+    embed-resources: true
+    toc: true #to show table of contents
+editor: visual
+---
+
+# 0) Data and Preparation
+
+Respiratory Interoception; Analysis of participants of site CH from 15.10.23 until 10.09.2024;
+
+```{r}
+#| output: false
+#| warning: FALSE
+#| error: FALSE
+
+# remove everything that we stored in the environment
+rm(list=ls()) 
+
+# Load necessary libraries
+library(readr)
+library(dplyr)
+library(rstatix)
+library(gtsummary)
+library(ggplot2)
+library(ggpubr)
+library(openxlsx)
+library(gt)
+library(stats)
+library(grDevices)
+library(car)
+library(stringr)  
+library(lubridate)
+library(Hmisc)
+library(writexl)
+
+
+### 0.0 PREPARATION -----------------------------------------------------------
+# load prepared and cleaned file from 00_preparation: df_yyyymmdd.csv
+setwd("/Users/nataschastoffel/Documents/GitHub/interoception_NS")
+df_RRST <- read.csv("/Users/nataschastoffel/Documents/GitHub/interoception_NS/data/processed/05-2025/Data.RRST_FINAL_20250509.csv")
+
+# factor variables
+factor_variables <- c('group', 'sex', 'psychotropic_medication')
+# Apply as.numeric to the selected columns
+df_RRST[factor_variables] <- lapply(df_RRST[factor_variables], as.factor)
+
+# numeric variables
+numeric_variables <- c('age', 'bmi', 'bdi', 'stai_s', 'stai_t', 'maia_total',
+                     'sdq', 'ctq_total', 'ias', 'rrst_sensitivity', 'rrst_slope', 'average_RT', 'metascore',
+                     'unpleasantness', 'asthma', 'dizziness', 'breathlessness',
+                     'correct_RT', 'incorrect_RT')
+# Apply as.numeric to the selected columns
+df_RRST[numeric_variables] <- lapply(df_RRST[numeric_variables], as.numeric)
+
+df <- df_RRST
+df$maia_commonfactor <- rowSums(df[, c("maia_note", "maia_attreg", "maia_aware", 
+                                       "maia_sfreg", "maia_body", "maia_trust")])
+
+```
+
+# 1) Having a Look at the Data
+
+## 1.1) Identifying the Outlier to exclude
+
+```{r}
+# Testing Outlier using boxplot (standard deviation)
+df %>% 
+  group_by(group) %>%
+  identify_outliers(rrst_sensitivity)
+# one outlier identified = P063 for rrst_sensitivity 
+
+#### Box-Plot with Jitter
+plotBoxplotGroups <- function(df, var , tit ){ 
+  plot <- ggplot(df, aes(x = group, y = var, fill = group)) + 
+    geom_boxplot(show.legend = TRUE) + 
+    labs(y = "Score") + 
+    theme_classic() + 
+    scale_fill_manual(values = c("#868686FF", "#BB4038")) + 
+    scale_x_discrete(labels = c("HC", "FND")) +  
+    guides(fill = "none") + 
+    ggtitle(tit) +
+    xlab("") +
+    geom_jitter(shape = 16, position = position_jitter(0.2))
+  
+  return(plot)
+}
+
+p1 <- plotBoxplotGroups(df, (df$rrst_sensitivity), "Respiration Sensitivity") + 
+  stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+p1
+
+# Filter the rows where rrst_sensitivity is greater than 8 and display pcode (visually detected as extreme)
+filtered_pcodes <- df[df$rrst_sensitivity > 8, "pcode"]
+print(filtered_pcodes) 
+# P063
+
+# Calculate mean and standard deviation of rrst_sensitivity
+mean_rrst <- mean(df$rrst_sensitivity)
+sd_rrst <- sd(df$rrst_sensitivity)
+# Define the threshold for filtering (mean + 2.5 * SD)
+threshold <- mean_rrst + 2.5 * sd_rrst # 7.07
+# Filter the pcodes for rrst_sensitivity greater than the threshold
+filtered_pcodes <- df[df$rrst_sensitivity > threshold, "pcode"]
+# View the result
+filtered_pcodes
+# P063
+
+df_exclusion <- df[df$pcode != "63", ]
+
+p1b <- plotBoxplotGroups(df_exclusion, (df_exclusion$rrst_sensitivity), "Respiration Sensitivity") + 
+  stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+print(p1b)
+p1b
+
+# Summary of Change - depending on Exclusion of Outlier
+summary(df$rrst_sensitivity) 
+summary(df_exclusion$rrst_sensitivity) 
+
+# for statistical reasons we EXCLUDE P063 from the dataset
+df <- df[df$pcode != "63", ]
+
+
+```
+
+## 1.2) Testing Distribution of Variables
+
+```{r}
+#| output: false
+#| warning: FALSE
+#| error: FALSE
+
+# Normality of Data -------------------
+hist(df$rrst_sensitivity) 
+shapiro.test(df$rrst_sensitivity) #  normally distributed
+
+hist(df$rrst_slope) # extremely right skewed
+df$rrst_slope_log <- log(df$rrst_slope + 1)  # Add 1 to avoid log(0) and log to normalize skewed variables
+hist(df$rrst_slope_log) # still skewed but better (for visualization)
+shapiro.test(df$rrst_slope_log) #  NOT normally distributed
+shapiro.test(df$rrst_slope_log[df$group == "1"]) # patients within themselves are NOT normally distributed
+shapiro.test(df$rrst_slope_log[df$group == "0"]) # controls within themselves are normally distributed
+
+hist(df$metascore) 
+shapiro.test(df$metascore)# NOT normally distributed
+shapiro.test(df$metascore[df$group == "1"]) # patients within themselves are NOT normally distributed
+shapiro.test(df$metascore[df$group == "0"]) # controls within themselves are normally distributed
+
+df$average_RT <- as.numeric(df$average_RT)
+hist(df$average_RT) 
+shapiro.test(df$average_RT) #  NOT normally distributed
+
+### other variables
+shapiro.test(df$age) # normally distributed
+
+shapiro.test(df$bdi) #  NOT normally distributed : p < 0.05
+shapiro.test(df$bdi[df$group == "1"]) # patients within themselves are normally distributed
+shapiro.test(df$bdi[df$group == "0"]) # controls within themselves are NOT normally distributed
+
+shapiro.test(df$stai_t) #  normally distributed 
+
+shapiro.test(df$stai_s) #  NOT normally distributed 
+shapiro.test(df$stai_s[df$group == "1"]) # patients within themselves are normally distributed
+shapiro.test(df$stai_s[df$group == "0"]) # controls within themselves are NOT normally distributed : p < 0.05
+
+shapiro.test(df$ctq_total) #  NOT normally distributed : p < 0.05
+shapiro.test(df$ctq_total[df$group == "1"]) # patients within themselves are also NOT normally distributed
+shapiro.test(df$ctq_total[df$group == "0"]) # controls within themselves are also NOT normally distributed
+
+shapiro.test(df$sdq) #  NOT normally distributed : p < 0.05
+shapiro.test(df$sdq[df$group == "1"]) # patients within themselves are NOT normally distributed
+shapiro.test(df$sdq[df$group == "0"]) # controls within themselves are NOT normally distributed : p < 0.05
+
+shapiro.test(df$maia_total) # normally distributed 
+shapiro.test(df$maia_commonfactor) # normally distributed 
+shapiro.test(df$maia_note) # NOT normally distributed 
+
+shapiro.test(df$ias) # NOT normally distributed 
+
+shapiro.test(df$bmi) # NOT normally distributed with p < 0.05
+shapiro.test(df$bmi[df$group == "1"]) # within patients bmi is normally distributed 
+shapiro.test(df$bmi[df$group == "0"]) # within control bmi is NOT normally distributed with p < 0.05
+
+
+```
+
+## 1.3) Testing Collinearity of Variables
+
+```{r}
+#| output: false
+#| warning: FALSE
+#| error: FALSE
+
+## testing co-dependency of variables by creating a correlation matrix -----
+# in order to run a correlation, all variables must be numeric (but we create new variables, so it wont mess with our variables that we defiend as factors)
+corr_matrix <- cor(df[, c("age","bmi", "bdi", "stai_s", "stai_t", "ctq_total",
+                          "ias", "maia_total", "sdq", "rrst_sensitivity", 
+                          "rrst_slope", "metascore")], use = "complete.obs")
+
+# Set the cutoff for high correlations, that we then want to exclude
+cutoff <- 0.7
+
+# Find the indices of correlations that are greater than 0.8 and exclude self-correlations (diagonal)
+high_corr <- which(abs(corr_matrix) > cutoff & abs(corr_matrix) < 1, arr.ind = TRUE)
+
+# Display the pairs of variables with high correlations
+high_corr_pairs <- data.frame(
+  Var1 = rownames(corr_matrix)[high_corr[, 1]],
+  Var2 = colnames(corr_matrix)[high_corr[, 2]],
+  Correlation = corr_matrix[high_corr]
+)
+
+# View the pairs
+print(high_corr_pairs) # stai and bdi are highly correlated, which we do accept though as this is a common clinical happening
+cor.test(df$bdi, df$stai_t) #
+
+df <- df %>%
+  mutate(anx_dep_SUM = stai_t + bdi)# create one variable for the trait anxiety and depression to use as one variable in the model
+
+```
+
+# 2) Group Differences
+
+```{r}
+#| warning: FALSE
+#| error: FALSE
+#| 
+#### main outcome variables as mean and sd /median and IQR
+mean(df$rrst_sensitivity[df$group=="1"])
+mean(df$rrst_sensitivity[df$group=="0"])
+sd(df$rrst_sensitivity[df$group=="1"])
+sd(df$rrst_sensitivity[df$group=="0"])
+
+median(df$rrst_slope[df$group=="1"])
+median(df$rrst_slope[df$group=="0"])
+IQR(df$rrst_slope[df$group=="1"])
+IQR(df$rrst_slope[df$group=="0"])
+median(df$rrst_slope_log[df$group=="1"])
+median(df$rrst_slope_log[df$group=="0"])
+IQR(df$rrst_slope_log[df$group=="1"])
+IQR(df$rrst_slope_log[df$group=="0"])
+
+median(df$metascore[df$group=="1"])
+median(df$metascore[df$group=="0"])
+IQR(df$metascore[df$group=="1"])
+IQR(df$metascore[df$group=="0"])
+
+### Group Differences as Baseline of Variables of Interst
+# parametric t-test for NORMALLY distributed data
+res<-t.test(df$rrst_sensitivity[df$group=="1"], df$rrst_sensitivity[df$group=="0"])
+res # SIG difference between group
+res<-t.test(df$stai_t[df$group=="1"], df$stai_t[df$group=="0"])
+res # SIG difference between groups with p < 0.05
+res<-t.test(df$maia_total[df$group=="1"], df$maia_total[df$group=="0"])
+res # SIG difference between groups with p < 0.05
+
+# non paramatric wilcox test for NOT normally distributed data 
+res<-wilcox.test(df$metascore[df$group=="1"], df$metascore[df$group=="0"])
+res # no sig difference between groups
+res<-wilcox.test(df$rrst_slope[df$group=="1"], df$rrst_slope[df$group=="0"])
+res # no sig difference between groups (p = 0.0629)
+res<-wilcox.test(df$rrst_slope_log[df$group=="1"], df$rrst_slope_log[df$group=="0"])
+res # still same result; confirming the data is the same 
+res<-wilcox.test(df$ias[df$group=="1"], df$ias[df$group=="0"])
+res # SIG difference between groups with p < 0.05
+res<-wilcox.test(df$maia_note[df$group=="1"], df$maia_note[df$group=="0"])
+res # no sig difference between groups
+res<-wilcox.test(df$bdi[df$group=="1"], df$bdi[df$group=="0"])
+res # SIG difference between groups with p < 0.05
+res<-wilcox.test(df$stai_s[df$group=="1"], df$stai_s[df$group=="0"])
+res # SIG difference between groups with p < 0.05
+res<-wilcox.test(df$ctq_total[df$group=="1"], df$ctq_total[df$group=="0"])
+res # SIG difference between groups with p < 0.05
+res<-wilcox.test(df$sdq[df$group=="1"], df$sdq[df$group=="0"])
+res # SIG difference between groups with p < 0.05
+res<-wilcox.test(df$ias[df$group=="1"], df$ias[df$group=="0"])
+res # no sig difference between groups
+res<-wilcox.test(df$bmi[df$group=="1"], df$bmi[df$group=="0"])
+res # no sig difference between groups
+
+
+# SIMPLE CORRELATION OF interoceptive group differences
+res1<-t.test(df$rrst_sensitivity[df$group=="1"], df$rrst_sensitivity[df$group=="0"])
+res2<-t.test(df$metascore[df$group=="1"], df$metascore[df$group=="0"])
+res3<-t.test(df$maia_total[df$group=="1"], df$maia_total[df$group=="0"])
+res4<-t.test(df$ias[df$group=="1"], df$ias[df$group=="0"])
+p_values <- c(res1$p.value, res2$p.value, res3$p.value, res4$p.value) # extract pvalues
+p_adjusted <- p.adjust(p_values, method = "bonferroni") # Correct p-values for multiple comparisons
+results_interoceptiongroupdiff <- data.frame(
+  Comparison = c("FND vs HC: rrst_sensitivity", "FND vs HC: rrst_metacognition", "FND vs HC: MAIA", "FND vs HC: IAS"),
+  Original_P = p_values,
+  Adjusted_P = p_adjusted)
+print(results_interoceptiongroupdiff)
+
+```
+
+## 2.1) Demographic Summary Table
+
+```{r}
+#| warning: FALSE
+#| error: FALSE
+
+# define required subgroups
+df_female <- df[df$sex == "1", ]
+df_male <- df[df$sex == "2", ]
+
+df_HC <- df[df$group == "0", ]
+df_FND <- df[df$group == "1", ]
+
+
+# overview across group and sex distribution
+tbl <- df %>%
+  mutate(sex = factor(sex, levels = c("1", "2"), labels = c("female", "male"))) %>%
+  mutate(group = factor(group, levels = c("0", "1"), labels = c("HC", "FND")))
+tbl1<-table(tbl$group,tbl$sex)
+tbl1
+
+# overview for mean age across group
+summary_stats <- tbl %>%
+  group_by(group) %>%
+  get_summary_stats(age, type = "full") # 'full' includes mean, SD, min, max, etc.
+print(summary_stats)
+
+res<-t.test(df$age[df$group == "0"], df$age[df$group == "1"]) # 
+res # no sig difference between the groups in age
+
+
+# SUMMARY TABLE DEMOGRAPHICS -----
+df_tbl <- df %>%
+  mutate(sex = factor(sex, levels = c("1", "2"), labels = c("male", "female"))) %>%
+  mutate(group = factor(group, levels = c("0", "1"), labels = c("HC", "FND"))) %>%
+  mutate(psychotropic_medication = factor(psychotropic_medication, levels = c("0", "1"), labels = c("no", "yes"))) 
+
+library(gtsummary)
+library(dplyr)
+
+# Select relevant columns from df_tbl
+Data.t <- select(df_tbl, c("group", "sex", "age", "psychotropic_medication", "smoke_crf", "bmi", "bdi", "stai_t", "ctq_total", "sdq"))
+
+# Create the summary table
+tbl1 <- Data.t %>%
+    tbl_summary(
+    by = group,
+    missing = "no",
+    statistic = list(
+      age = "{mean} ({sd})",
+      sex = "{n} ({p})",
+      psychotropic_medication = "{n} ({p})",
+      smoke_crf = "{n} ({p})",
+      bmi = "{median} ({p25}, {p75})",
+      bdi = "{median} ({p25}, {p75})",
+      stai_t = "{mean} ({sd})",
+      ctq_total = "{median} ({p25}, {p75})",
+      sdq = "{median} ({p25}, {p75})"
+    ),
+    digits = list(age = 1, sex = 1, psychotropic_medication = 1, smoke = 1, bmi = 1, bdi = 1, stai_t=1, ctq_total=1, sdq=1),
+    label = list(age = "Age, mean (SD)",
+                 sex = "Sex, count (%)",
+                 psychotropic_medication= "Intake of psychotropic Medication, count (%)",
+                 smoke_crf = "Smoking, count (%)",
+                 bmi = "Body Mass Index kg/m², median (IQR)",
+                 bdi = "Depression using BDI-II, median (IQR), ",
+                 stai_t = "Trait Anxiety using STAI, median (IQR)",
+                 ctq_total = "Childhood Trauma, using CTQ total, median (IQR)",
+                 sdq = "Dissociation using SDQ-20, median (IQR)")
+  ) %>%
+  modify_header(list(label ~ "**Variable**")) %>%
+  modify_caption("**Demographics Overview**") %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Group**") %>%
+  add_p( test = list(
+        age ~ "t.test",            # t-test for numeric variables (even though NOT normally distributed; rather use wilcox and then the median instead of the mean??)
+        bmi ~ "wilcox.test",            # t-test for bmi
+        sex ~ "chisq.test",        # chi-square test for factor variables
+        psychotropic_medication ~ "chisq.test",  # Fisher's exact test for small samples
+        smoke_crf ~ "chisq.test",  # Fisher's exact test for small samples
+        bdi ~ "wilcox.test",
+        stai_t ~ "t.test",
+        ctq_total = "wilcox.test",
+        sdq="wilcox.test"
+      )) %>% 
+  add_overall(last = FALSE)
+
+# Display the table
+tbl1
+
+    # save table as excel
+    tbl1_df <- tbl1 %>% as_tibble()
+    write_xlsx(tbl1_df, "2.1_Table_demographics.xlsx")
+```
+
+## 2.2) FND Summary Table
+
+```{r}
+#| warning: FALSE
+#| error: FALSE
+# 1.4 SUMMARY TABLE for FND symptoms -----
+# create variable of duation of months
+df_FND <- df_FND %>%
+  mutate(duration_months = interval(date_symptom_onset, date) %/% months(1)) # calculate month duration
+
+as.numeric(df_FND$duration_months)
+
+# Select the relevant columns and include the calculated duration
+Data.t <- dplyr::select(df_FND, c("sex", "duration_months", "fds", "motor", "weakness", "sensory", "pppd", "cognitive"))
+
+Data.t <- Data.t  %>%
+  mutate(sex = factor(sex, levels = c("1", "2"), labels = c("female", "male")))
+
+# Convert 0/1 values to "no"/"yes" for table, so that it will only show the count "yes"
+Data.t <- Data.t %>%
+  mutate(
+    across(c(fds, motor, weakness, sensory, pppd, cognitive), 
+           ~ factor(.x, levels = c(0, 1), labels = c("no", "yes")))
+  ) %>%
+  dplyr::select(sex, duration_months, fds, motor, weakness, sensory, pppd, cognitive)
+
+# Create the summary table (which symptoms present with how many patients (per patient more symtpoms possible))
+tbl1 <- Data.t %>%
+  tbl_summary(
+    by = sex,
+    missing = "no",
+    statistic = list(
+      duration_months = "{mean} ({sd})",
+      fds = "{n} ({p})",
+      motor = "{n} ({p})",
+      weakness = "{n} ({p})",
+      sensory = "{n} ({p})",
+      pppd = "{n} ({p})",
+      cognitive = "{n} ({p})"
+    ),
+    digits = list(medication = 1, duration_months = 1, fds = 1, motor = 1, weakness = 1, sensory = 1, pppd = 1, cognitive = 1),
+    label = list(
+      sex = "Sex",
+      duration_months = "Symptom Duration [in months]",
+      fds = "Functional Dissociative Seizures [yes]",
+      motor = "motor + symptoms [yes]",
+      weakness = "motor - symptoms [yes]",
+      sensory = "sensory symptoms [yes]",
+      pppd = "dizziness (PPPD) [yes]",
+      cognitive = "cognitive symptoms [yes]"
+    )
+  ) %>%
+  modify_header(list(label ~ "**Variable**")) %>%
+  modify_caption("**Clinical Characteristics**") %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Group**") %>%
+  add_p(
+    test = list(
+      duration_months = "t.test", 
+      fds = "fisher.test", 
+      motor = "fisher.test",
+      weakness = "fisher.test", 
+      sensory = "fisher.test", 
+      ctq_total = "fisher.test", 
+      pppd = "fisher.test", 
+      cognitive = "fisher.test"
+    )  
+    ) %>%   add_overall(last = FALSE)
+
+tbl1
+
+  # save table as excel
+  tbl1_df <- tbl1 %>% as_tibble()
+  write_xlsx(tbl1_df, "2.2_Table_clinical_characteristics.xlsx")
+```
+
+## 2.3) Visualization of Group Differences
+
+Here we visualize the different distribution per group across all variables
+
+```{r}
+#| warning: FALSE
+#| error: FALSE
+df$group <- as.factor(df$group)
+
+# plot function for  normally dsitributed data, allowing the use of the t test (and the mean)
+plotViolinGroups_mean <- function(df, var , tit ){ 
+  plot <-ggplot(df, aes(x=group, y=var, fill=group)) + 
+    geom_violin(show.legend = FALSE, width = 0.7, trim = FALSE, alpha = 0.8)+  
+    stat_summary(show.legend = FALSE, fun = mean, geom = "point", color = "black", size = 2) +  
+    labs(y = "Score") + 
+    theme_classic()+ 
+    scale_fill_manual(values = c("#868686FF", "#BB4038"))+ 
+    scale_x_discrete(labels=c("Controls", "Patients"))+  
+    guides(fill=guide_legend(title="Timepoint"))+ 
+    ggtitle(tit) +
+    xlab("")
+  
+  return(plot)
+}
+
+# plot function for non normally dsitributed data; the wilcox test (and the median)
+plotViolinGroups_median <- function(df, var , tit ){ 
+  plot <-ggplot(df, aes(x=group, y=var, fill=group)) +  
+    geom_violin(show.legend = FALSE, width = 0.7, trim = FALSE, alpha = 0.8)+ 
+    stat_summary(show.legend = FALSE, fun = median, geom = "point", color = "black", size = 2) + 
+    labs(y = "Score") + 
+    theme_classic()+ 
+    scale_fill_manual(values = c("#868686FF", "#BB4038"))+ 
+    scale_x_discrete(labels=c("Controls", "Patients"))+  
+    ggtitle(tit) +
+    xlab("")
+  
+  return(plot)
+}
+
+# adding jitter points
+jitteredViolin <- function(df, var, tit){  
+  ggplot(df, aes(x = group, y = {{ var }}, fill = group)) +  
+    geom_violin(show.legend = FALSE, width = 0.7, trim = FALSE, alpha = 0.8) +  
+    geom_jitter(width = 0.1, size = 1.2, color = "black", alpha = 0.6) +  
+    stat_summary(show.legend = FALSE, fun = median, geom = "point", color = "black", size = 2) +  
+    labs(y = "Score") +  
+    theme_classic() +  
+    theme(legend.position = "none") +
+    scale_fill_manual(values = c("#868686FF", "#BB4038")) +  
+    scale_x_discrete(labels = c("Controls", "Patients")) +  
+    ggtitle(tit) +  
+    xlab("")  
+}
+
+p1 <- plotViolinGroups_median(df,df$bdi,"BDI - Depression")+ ggpubr::stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p1
+  pdf("2.3_Plot_BDI_violin.pdf")
+  p1
+  dev.off()
+
+
+p2 <- plotViolinGroups_mean(df,df$stai_s,"STAI - State Anxiety")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+p3 <- plotViolinGroups_median(df,df$stai_t,"STAI - Trait Anxiety")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+gridExtra::grid.arrange(p2, p3, ncol = 2)
+  pdf("2.3_Plot_STAI_violin.pdf")
+  gridExtra::grid.arrange(p2, p3, ncol = 2)
+  dev.off()
+
+p4 <- plotViolinGroups_median(df,df$ctq_total,"CTQ - Childhood Trauma")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p4
+  pdf("2.3_Plot_CTQ_violin.pdf")
+  p4
+  dev.off()
+
+p5 <- plotViolinGroups_median(df,df$sdq,"SDQ-20 - Dissociation")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p5
+    pdf("2.3_Plot_SDQ-20_violin.pdf")
+  p5
+  dev.off()
+
+
+p6 <- plotViolinGroups_mean(df,df$maia_total,"MAIA - total score")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+  
+p6common <- plotViolinGroups_mean(df,df$maia_commonfactor,"MAIA - common factor")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+  
+p6noticing <- plotViolinGroups_median(df,df$maia_note,"MAIA subscale - Noticing")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+
+  gridExtra::grid.arrange(p6, p6common, p6noticing, ncol = 3)
+  
+  pdf("2.3_Plots_MAIA_violin.pdf")
+  gridExtra::grid.arrange(p6, p6common, p6noticing, ncol = 3)
+  dev.off()
+
+
+p7 <- plotViolinGroups_median(df,df$ias,"IAS - Interoceptive Accuracy")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p7
+  pdf("2.3_Plot_IAS_violin.pdf")
+  p7
+  dev.off()
+
+
+p8 <- plotViolinGroups_mean(df,df$rrst_sensitivity,"Respiratory Sensitivity (RRST alpha)")+ stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+p9 <- plotViolinGroups_median(df,df$rrst_slope_log,"Respiratory Slope (RRST beta)")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+p10 <- plotViolinGroups_median(df,df$metascore,"Respiratory Metacognition")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+gridExtra::grid.arrange(p8, p9, p10, ncol = 2)
+  pdf("2.3_Plots_RRST_violin.pdf")
+  gridExtra::grid.arrange(p8, p9, p10,  ncol = 2)
+  dev.off()
+  
+  
+  Figure2c <- jitteredViolin(df,df$rrst_sensitivity,"Respiratory Sensitivity (RRST alpha)") +
+  stat_compare_means(method = "t.test", paired = FALSE, label.x = 1.3)
+  Figure2c
+  
+  Figure2d <- jitteredViolin(df,df$rrst_slope_log, "Respiratory Slope (RRST beta)") +
+  stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+  Figure2d
+  
+  Figure3c <- jitteredViolin(df,df$metascore,"Respiratory Metacognition (AUC)") +
+  stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+  Figure3c
+  
+  
+ #### save images as TIFF for publication 
+  ggsave("Figure2c.svg", 
+       plot = Figure2c, 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "svg")
+  
+ggsave("Figure2d.svg", 
+       plot = Figure2d, 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "svg")
+    
+  ggsave("Figure3c.svg", 
+       plot = Figure3c, 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "svg")
+  
+  
+
+# Table for dependent Variables: group differences
+df_tbl <- df %>%
+  mutate(group = factor(group, levels = c("0", "1"), labels = c("HC", "FND"))) 
+  
+Data.t <- select(df_tbl, c("group", "maia_total", "maia_commonfactor", "maia_note", "ias", "rrst_sensitivity","rrst_slope", "metascore"))
+library(gtsummary)
+tbl2 <- Data.t %>%
+  tbl_summary(
+    by = group,
+    missing = "no",
+    statistic = list(
+      maia_total = "{mean} ({sd})",
+      maia_commonfactor = "{mean} ({sd})",
+      maia_note = "{median} ({IQR})",
+      ias = "{median} ({IQR})",
+      rrst_sensitivity = "{mean} ({sd})",
+      rrst_slope = "{median} ({IQR})",
+      metascore = "{median} ({IQR})"
+    ),
+    digits = list(maia_total = 2, maia_commonfactor = 2, maia_note = 2, ias = 2, 
+                  rrst_sensitivity = 2, rrst_slope = 2, metascore = 2),
+    label = list(maia_total= "Interoceptive Awareness Self-Report - MAIA, Mean, (SD)",
+                  maia_commonfactor= "MAIA common factor, Mean, (SD)",
+                 maia_note= "MAIA subscale Noticing, Median, (IQR)",
+                 ias= "Interoceptive Accuracy Self-Report - IAS, Median (IQR)",
+                 rrst_sensitivity= "Respiratory Sensitivity - RRST, Mean (SD)",
+                rrst_slope= "Interoceptive Decision Prescision - RRST slope, Median (IQR)",
+                 metascore= "Respiratory Metacognition - AUC, Median (IQR)"
+                 )
+  ) %>%
+  modify_header(list(label ~ "**Variable**")) %>%
+  modify_caption("**Interoception Overview**") %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Group**") %>%
+  add_p(
+    test = list(
+      maia_total = "t.test", 
+      maia_commonfactor = "wilcox.test", 
+      maia_note = "t.test",  
+      ias = "wilcox.test",        
+      rrst_sensitivity = "t.test",
+      rrst_slope = "wilcox.test",
+      metascore = "wilcox.test")
+    ) %>%
+    add_overall(last = FALSE)
+tbl2
+
+	tbl2_df <- tbl2 %>% as_tibble()
+	write_xlsx(tbl2_df, "2.3_Table_dependent_variables.xlsx")
+
+
+```
+
+## 2.4) Effect Sizes and CI
+
+Here we calculate the effect sizes (cohen's d or OR) and the confidence intervals of the variables to be reported
+
+```{r}
+#| warning: FALSE
+#| error: FALSE
+# calculation of cohens d for variable of interest
+# Define the function
+calculate_cohens_d <- function(data, variable, group_var, group1, group2) {
+  # Subset the data for each group
+  group1_data <- data[[variable]][data[[group_var]] == group1]
+  group2_data <- data[[variable]][data[[group_var]] == group2]
+  
+  # Calculate means and standard deviations
+  mean1 <- mean(group1_data, na.rm = TRUE)
+  mean2 <- mean(group2_data, na.rm = TRUE)
+  sd1 <- sd(group1_data, na.rm = TRUE)
+  sd2 <- sd(group2_data, na.rm = TRUE)
+  
+  # Calculate sample sizes
+  n1 <- sum(!is.na(group1_data))
+  n2 <- sum(!is.na(group2_data))
+  
+  # Calculate pooled standard deviation
+  sd_pooled <- sqrt(((n1 - 1) * sd1^2 + (n2 - 1) * sd2^2) / (n1 + n2 - 2))
+  
+  # Calculate Cohen's d
+  cohens_d <- (mean1 - mean2) / sd_pooled
+  
+  # Return Cohen's d
+  return(cohens_d)
+}
+
+# Calculate Cohen's d for variables of interest
+cohens_d_rrst <- calculate_cohens_d(df, "rrst_sensitivity", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_rrst) # cohens d of -0.467 means with an effect size of 0.46 FND has LOWER values than HC
+
+cohens_d_slope <- calculate_cohens_d(df, "rrst_slope", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_slope) # cohens d of 0.509 means with an effect size of 0.51 FND has HIGHER values than HC
+
+cohens_d_meta <- calculate_cohens_d(df, "metascore", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_meta) # cohens d of -0.128 means with an effect size of 0.128 FND has LOWER values than HC
+
+cohens_d_maia <- calculate_cohens_d(df, "maia_total", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_maia) # cohens d of -0.786 means with an effect size of 0.786 FND has LOWER values than HC
+
+cohens_d_maia <- calculate_cohens_d(df, "maia_commonfactor", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_maia) # cohens d of -0.793 means with an effect size of 0.793 FND has LOWER values than HC
+
+cohens_d_maia_note <- calculate_cohens_d(df, "maia_note", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_maia_note) # cohens d of -0.182 means with an effect size of 0.18 FND has LOWER values than HC
+
+cohens_d_ias <- calculate_cohens_d(df, "ias", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_ias) # cohens d of -0.651 means with an effect size of 0.651 FND has LOWER values than HC
+
+cohens_d_bdi <- calculate_cohens_d(df, "bdi", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_bdi) # cohens d of 1.382615 means with an effect size of 1.382615 FND has HIGHER values than HC
+
+cohens_d_stai_t <- calculate_cohens_d(df, "stai_t", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_stai_t) # cohens d of 0.829 means with an effect size of 0.829 FND has HIGHER values than HC
+
+cohens_d_stai_s <- calculate_cohens_d(df, "stai_s", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_stai_s) # cohens d of 1.080 means with an effect size of 1.080 FND has HIGHER values than HC
+
+cohens_d_ctq_total <- calculate_cohens_d(df, "ctq_total", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_ctq_total) # cohens d of 0.662 means with an effect size of 0.662 FND has HIGHER values than HC
+
+cohens_d_sdq <- calculate_cohens_d(df, "sdq", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_sdq) # cohens d of 1.500 means with an effect size of 1.500 FND has HIGHER values than HC
+
+cohens_d_bmi <- calculate_cohens_d(df, "bmi", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_bmi) # cohens d of 0.557 means with an effect size of 0.6621177 FND has HIGHER values than HC
+
+# for binary variable we calculate the ODDS RATIO
+model <- glm(group ~ psychotropic_medication, data = df, family = binomial)
+summary(model)
+# Extract CI and Odds Ratio
+confint_logit <- confint(model)  # CI on the log-odds scale
+confint_or <- exp(confint_logit) # Exponentiate to get CI for OR
+odds_ratio <- exp(coef(model)) # Calculate Odds Ratios
+results <- cbind(odds_ratio, confint_or) # Combine OR and CI
+results
+
+```
+
+## 2.5) MAIA subscors
+
+```{r}
+ maia<-dplyr::select(df, pcode, group, maia_attreg, maia_note, maia_distr, maia_worry, maia_aware, maia_sfreg, maia_body, maia_trust)
+  
+  #Make long data
+  maia_long <- gather(maia, key = "subscale", value = "score", -pcode, -group) # make data set long (so that every p code has 6 rows, one for each of the subscores of ctq)
+  maia_long$subscale<-as.factor(maia_long$subscale)
+ maia_long$subscale <- factor(maia_long$subscale, levels = rev(levels(maia_long$subscale)))
+  
+  maia_long$score<-as.numeric(maia_long$score)
+  maia_long$group<-as.factor(maia_long$group)
+  maia_long$group <- factor(maia_long$group, levels = c(0, 1), labels = c("HC", "FND"))
+  
+  
+  # Calculate mean, median, CI, SE
+  library(dplyr)
+  alpha=0.05
+  maia.summary <- maia_long %>%
+    group_by(group,subscale)%>%
+    dplyr::summarise(
+      se = sd(score) / sqrt(length(score)),
+      t=qt((1-alpha)/2 + .5, length(score)-1),   # tend to 1.96 if sample size is big enough
+      CI=t*se, 
+      score = mean(score), .groups = 'drop') # you can use here mean or median depending on data distribution
+  
+  maia.summary # according to this order name the lables in the following plot p
+  
+  # STATISTICS
+  # Multiple t-tests using FDR correction for multiple comparisons (FDR or bonferroni)
+  library(rstatix)
+  stat.test <- maia_long %>%
+    group_by(subscale) %>%
+    t_test(score ~ group) %>%
+    adjust_pvalue(method = "fdr") %>% # if you don't want to correct for multiple comparisons you can comment out this line
+    add_significance()
+  stat.test # subscales worrying, trusting, body and attention regulation are sig difference across groups
+  
+
+  # Filter for significant results (both * and **)
+  significant_results <- stat.test %>%
+    filter(p.adj.signif %in% c("*", "**")) %>%
+    select(subscale, p.adj.signif)  # Keep both subscale and significance level
+  
+  # VISUALIZATION
+  # Plot
+  library(ggsignif)
+  maia.summary <- maia.summary %>%
+    left_join(significant_results, by = "subscale") %>%
+    mutate(significance = ifelse(is.na(p.adj.signif), "", p.adj.signif))  # Add a column for asterisks
+  
+  dodge <- position_dodge(width=0.9)
+  maiaplot <- maia.summary %>%
+  ggplot(aes(y = score, x = subscale, ymin = score - CI, ymax = score + CI, fill = group)) +
+  geom_bar(position = position_dodge(), stat = "identity") +
+  geom_errorbar(position = position_dodge(width = 0.9), width = 0.3) +
+  labs(x = "MAIA Subscales", y = "Scores") +
+  scale_fill_manual(values = c("#868686FF", "#BB4038")) +
+  ggtitle("MAIA - Interoceptive Awareness") +
+  theme_classic(base_size = 9) +
+  scale_x_discrete(labels = c("Not-Worrying", "Trusting", "Self-Regulation", "Noticing", 
+                              "Not-Distracting", "Body Listening", "Emotional Awareness", "Attention Regulation")) +
+  guides(fill = guide_legend(title = "Groups"))
+  
+    ### SIG ASTERIX HAVE BEEN REMOVED (to manually add them)
+  maiaplot
+  
+	pdf("2.5_MAIAsubscales.pdf")
+	maiaplot
+	dev.off()
+```
+
+# 3) Testing potential Confounders for RRST sensitivity
+
+## 3.2) Anxiety
+
+```{r}
+# RRST Sensitivity GROUP
+rrst_affective <- lm(formula = rrst_sensitivity ~  group,
+                 data = df) 
+summary(rrst_affective)  # GROUP
+confint(rrst_affective, level = 0.95)  
+
+# RRST Sensitivity GROUP controlled for affective symptoms
+rrst_affective <- lm(formula = rrst_sensitivity ~  group + anx_dep_SUM,
+                 data = df) 
+summary(rrst_affective)  # no sig anymore
+confint(rrst_affective, level = 0.95)  
+
+# RRST Sensitivity GROUP controlled for affective symptoms
+rrst_anxiety <- lm(formula = rrst_sensitivity ~  group + stai_t,
+                 data = df) 
+summary(rrst_anxiety)  # no sig anymore
+confint(rrst_anxiety, level = 0.95)  
+
+# RRST Sensitivity affective symptoms
+rrst_affective <- lm(formula = rrst_sensitivity ~  anx_dep_SUM,
+                 data = df) 
+summary(rrst_affective)  # anx_dep sum score by itself NOT sig for rrst_sensitivity
+confint(rrst_affective, level = 0.95)  
+
+# RRST Sensitivity anxiety symptoms
+rrst_anxiety <- lm(formula = rrst_sensitivity ~  stai_t,
+                 data = df) 
+summary(rrst_anxiety)  # anx_dep sum score by itself NOT sig for rrst_sensitivity
+confint(rrst_anxiety, level = 0.95)  
+```
+
+## 3.2) RRST discomfort
+
+```{r}
+## first we test whether the different control-questions correlate
+corr_matrix <- cor(df[, c("breathlessness","dizziness", "unpleasantness", "asthma")], use = "complete.obs")
+
+# Set the cutoff for high correlations, that we then want to exclude
+cutoff <- 0.5
+
+# Find the indices of correlations that are greater than 0.7 and exclude self-correlations (diagonal)
+high_corr <- which(abs(corr_matrix) > cutoff & abs(corr_matrix) < 1, arr.ind = TRUE)
+
+# Display the pairs of variables with high correlations
+high_corr_pairs <- data.frame(
+  Var1 = rownames(corr_matrix)[high_corr[, 1]],
+  Var2 = colnames(corr_matrix)[high_corr[, 2]],
+  Correlation = corr_matrix[high_corr]
+)
+
+# View the pairs
+print(high_corr_pairs) # no high correlation; no general factor of discomfort
+
+### calculate correlations to respiratory sensitivity (and control for multiple comparision)
+# Run all correlations and store p-values
+p_values <- c(
+  cor.test(df$breathlessness, df$rrst_sensitivity)$p.value,
+  cor.test(df$asthma, df$rrst_sensitivity)$p.value,
+  cor.test(df$unpleasantness, df$rrst_sensitivity)$p.value,
+  cor.test(df$dizziness, df$rrst_sensitivity)$p.value
+)
+
+# Apply FDR correction
+p_adjusted <- p.adjust(p_values, method = "fdr")
+
+# Optional: associate each result with variable name
+results <- data.frame(
+  variable = c("breathlessness", "asthma", "unpleasantness", "dizziness"),
+  raw_p = p_values,
+  p_fdr = p_adjusted
+)
+
+print(results)
+
+# Calculate Cohen's d for variables of interest
+cohens_d_discomfort <- calculate_cohens_d(df, "breathlessness", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_discomfort) # cohens d of -0.467 means with an effect size of 0.46 FND has LOWER values than HC
+
+cohens_d_discomfort <- calculate_cohens_d(df, "asthma", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_discomfort) # cohens d of -0.467 means with an effect size of 0.46 FND has LOWER values than HC
+
+cohens_d_discomfort <- calculate_cohens_d(df, "unpleasantness", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_discomfort) # cohens d of -0.467 means with an effect size of 0.46 FND has LOWER values than HC
+
+cohens_d_discomfort <- calculate_cohens_d(df, "dizziness", "group", 1, 0) # group 1=FND, group=0 HC
+print(cohens_d_discomfort) # cohens d of -0.467 means with an effect size of 0.46 FND has LOWER values than HC
+
+
+## testing linear models for the effect on the idneitified group difference
+# RRST Sensitivity GROUP controlled for discomfort of the task
+rrst_discomfort <- lm(formula = rrst_sensitivity ~  group + unpleasantness,
+                 data = df) 
+summary(rrst_discomfort)  # not sig anymore; p = 0.0691
+confint(rrst_discomfort, level = 0.95)  
+
+# RRST Sensitivity GROUP controlled for discomfort of the task
+rrst_asthma <- lm(formula = rrst_sensitivity ~  group + asthma,
+                 data = df) 
+summary(rrst_asthma)  # group not sig, but asthma with p. = 0.005
+confint(rrst_asthma, level = 0.95)  
+
+# RRST Sensitivity GROUP controlled for discomfort of the task
+rrst_breath <- lm(formula = rrst_sensitivity ~  group + breathlessness,
+                 data = df) 
+summary(rrst_breath)  # both factors not sig
+confint(rrst_breath, level = 0.95)  
+
+# RRST Sensitivity GROUP controlled for discomfort of the task
+rrst_dizzy <- lm(formula = rrst_sensitivity ~  group + dizziness,
+                 data = df) 
+summary(rrst_dizzy)  # group still sig p = 0.042
+confint(rrst_dizzy, level = 0.95)  
+
+
+shapiro.test(df$breathlessness)# NOT normally distributed
+shapiro.test(df$dizziness)# NOT normally distributed
+shapiro.test(df$asthma)# NOT normally distributed
+shapiro.test(df$unpleasantness)# NOT normally distributed
+
+
+discomfort1 <- jitteredViolin(df, df$unpleasantness, "A) Unpleasantness") +
+  stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1, label.y = 110) +
+  ylim(0, 120)
+  
+discomfort2 <- jitteredViolin(df, df$dizziness, "B) Dizziness") +
+  stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1, label.y = 110) +
+  ylim(0, 120)
+
+discomfort3 <- jitteredViolin(df, df$breathlessness, "C) Breathlessness") +
+  stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1, label.y = 110) +
+  ylim(0, 120)
+
+discomfort4 <- jitteredViolin(df, df$asthma, "D) Asthma") +
+  stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1, label.y = 110) +
+  ylim(0, 120)
+
+
+gridExtra::grid.arrange(discomfort1, discomfort2, discomfort3, discomfort4, ncol = 2, nrow = 2)
+  pdf("3.2_Plots_discomfort_violin.pdf")
+  gridExtra::grid.arrange(discomfort1, discomfort2, discomfort3, discomfort4, ncol = 2)
+  dev.off()
+  
+ggsave("Figure6.tiff", 
+       plot =   gridExtra::grid.arrange(discomfort1, discomfort2, discomfort3, discomfort4, ncol = 2), 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "tiff", 
+       compression = "lzw")
+
+
+
+```
+
+## 3.3) Reaction-Time
+
+```{r}
+df_RT <- df[df$pcode != "29", ]
+# this participant has to be excluded for the analyiss on RT as he was not able to press the buttom himself but rather gave a sign for the experimenter to click the mouse for him; thus the response times are not accurate
+
+df_RT_HC <- df_RT[df_RT$group == "0", ]
+df_RT_FND <- df_RT[df_RT$group == "1", ]
+
+# mean age
+df_RT %>% # within our dataset
+  group_by(group) %>% # we group by our variable group (FND vs HC)
+  get_summary_stats(average_RT, type = "mean_sd") # and based on these groups, we want the statistics in age, including mean and sd
+
+median(df$average_RT[df$group=="1"])
+median(df$average_RT[df$group=="0"])
+IQR(df$average_RT[df$group=="1"])
+IQR(df$average_RT[df$group=="0"])
+
+res<-wilcox.test(df$average_RT[df$group=="1"], df$average_RT[df$group=="0"])
+res # no sig difference between groups 
+
+
+## first we test whether reaction time correlates with the sensitivity score (as in, whether or not the sensitivity score is mirroring the impulsiveness or the jumping to conclusion)
+
+cor.test(df_RT$average_RT, df_RT$rrst_sensitivity) # r = -0.26, p = 0.013
+cor.test(df_RT$average_RT, df_RT$rrst_slope) # also testing the slope to represent interoceptive precision; p = 0.458
+
+# separately per group
+cor.test(df_RT_FND$average_RT, df_RT_FND$rrst_sensitivity) # p = 0.060
+cor.test(df_RT_FND$average_RT, df_RT_FND$rrst_slope) # p = 0.3745
+
+cor.test(df_RT_HC$average_RT, df_RT_HC$rrst_sensitivity) # p = 0.041
+cor.test(df_RT_HC$average_RT, df_RT_HC$rrst_slope) # p = 0.885
+
+
+# RRST Sensitivity GROUP controlled for average RT
+rrst_rt <- lm(formula = rrst_sensitivity ~  group + average_RT,
+                 data = df_RT) 
+summary(rrst_rt)  # both sig
+confint(rrst_rt, level = 0.95) 
+
+# Viszalization
+df_plot <- df_RT %>%
+  mutate(group = factor(group, levels = c("0", "1"), labels = c("HC", "FND")))
+
+RRST_RT<- ggplot(df_plot, aes(x = average_RT, y = rrst_sensitivity, color = as.factor(group))) +
+  geom_point() +  # Scatterplot for both groups
+  geom_smooth(method = "lm", se = TRUE) +  # Add regression lines and SE
+  labs(x = "Average Response Time in s", 
+       y = "Respiratory Sensitivity (RRST)", 
+       title = "B) Respiratory Interoception and Response Time",
+       color = "Group") +  # Label for the legend
+    theme_classic()+ 
+  scale_color_manual(values = c("FND" = "#E95248", "HC" = "#868686FF")) +
+  theme(panel.grid = element_blank())  # Remove grid lines
+
+RRST_RT
+
+ggsave("Figure5b.tiff", 
+       plot = RRST_RT, 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "tiff", 
+       compression = "lzw")
+
+RTplot <- plotViolinGroups_median(df_RT,df_RT$average_RT,"Average Response Time")+ stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1.3)
+RTplot
+
+ggsave("Figure5a.tiff", 
+       plot = RTplot, 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "tiff", 
+       compression = "lzw")
+
+
+######## long data format
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(rstatix)
+
+######
+# Convert to long format
+Data.RT <- select(df_RT, c("group", "incorrect_RT", "correct_RT", "pcode")) %>%
+  mutate(group = factor(group, levels = c("0", "1"), labels = c("HC", "FND")))
+
+df_long <- Data.RT %>%
+  pivot_longer(cols = c(correct_RT, incorrect_RT),
+               names_to = "accuracy",
+               values_to = "RT") %>%
+  mutate(
+    accuracy = factor(accuracy, levels = c("correct_RT", "incorrect_RT"),
+                      labels = c("Correct", "Incorrect")),
+    group = factor(group, levels = c("FND", "HC")),
+    group_accuracy = paste(group, accuracy, sep = "_")
+  )
+
+# Define color palette
+group_colors <- c("FND" = "#E95248", "HC" = "#868686FF")
+fill_colors <- c("FND_Correct" = "#f4cccc", 
+                 "FND_Incorrect" = "#E95248",
+                 "HC_Correct" = "#bcbcbc", 
+                 "HC_Incorrect" = "#868686FF")
+
+# Within-group comparisons (paired)
+within_group_tests <- df_long %>%
+  group_by(group) %>%
+  wilcox_test(RT ~ accuracy, paired = TRUE) %>%
+  add_significance() %>%
+  mutate(group_accuracy = paste(group, "Correct_vs_Incorrect", sep = "_")) %>%
+  add_xy_position(x = "group_accuracy", dodge = 0.6)
+
+# Between-group comparisons (unpaired)
+between_group_tests <- df_long %>%
+  group_by(accuracy) %>%
+  wilcox_test(RT ~ group, paired = FALSE) %>%
+  add_significance() %>%
+  mutate(group_accuracy = paste("FND", accuracy, sep = "_")) %>%  # use FND_* for x-position
+  add_xy_position(x = "group_accuracy", dodge = 0.6)
+
+violin_plots_RTs <- ggviolin(df_long, x = "group_accuracy", y = "RT",
+         fill = "group_accuracy", palette = fill_colors,
+         add = "jitter", width = 1, trim = FALSE) +
+  labs(title = "A) Reaction Times by Group and Accuracy",
+       x = NULL, y = "Reaction Time (RT)") +
+  theme_classic() +
+  theme(legend.position = "none")
+violin_plots_RTs
+
+ggsave("3.3_violin_plots_RTs.tiff", 
+       plot = violin_plots_RTs,
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "tiff", 
+       compression = "lzw")
+
+ggsave("Figure4.tiff", 
+       plot = gridExtra::grid.arrange(violin_plots_RTs, RRST_RT, ncol = 2), 
+       dpi = 600, 
+       width = 8, 
+       height = 4, 
+       units = "in", 
+       device = "tiff", 
+       compression = "lzw")
+
+
+```
+
+# 4) Symptom Severity as dependent variables
+
+```{r}
+# Compute the correlation matrix with variables of symptom severity to see whether they correlate
+# Select the desired variables
+severity_variables <- df_FND[, c("sfmdrs", "cgi", "sdq")]
+
+# Compute the correlation matrix with rcorr
+correlation_results <- Hmisc::rcorr(as.matrix(severity_variables))
+
+# Extract correlation coefficients
+cor_matrix <- correlation_results$r
+
+# Extract p-values
+p_matrix <- correlation_results$P
+
+# Print results
+cor_matrix
+p_matrix
+
+# SIG correlations of different symptom severity scores
+### CGI & SFMDRS corr: r= 0.5841928 , p=3.136863e-05
+### CGI & SDQ corr: r = 0.31 , p = 0.045
+```
+
+## 4.1 ) Correlations with SDQ
+
+```{r}
+#| warning: FALSE
+#| error: FALSE
+# Exclude participants with sfmdrs = 0
+filtered_df <- df_FND[df_FND$sfmdrs != 0, ]
+# Count how many participants were excluded
+excluded_count <- sum(df_FND$sfmdrs == 0)
+excluded_count 
+
+# SIMPLE CORRELATION OF RRST sensitivity and symptom severity scores - including SDQ
+cor1 <- cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson") # r = -0.3828185, p-value = 0.01129
+cor2 <- cor.test(filtered_df$rrst_sensitivity, filtered_df$sfmdrs, method = "pearson") 
+cor3 <- cor.test(df_FND$rrst_sensitivity, df_FND$cgi, method = "pearson") 
+p_values <- c(cor1$p.value, cor2$p.value, cor3$p.value) # extract pvalues
+p_adjusted <- p.adjust(p_values, method = "bonferroni") # Correct p-values for multiple comparisons
+results_rrst <- data.frame(
+  Comparison = c("FND: rrst_sensitivity vs sdq", "FND: rrst_sensitivity vs sfmdrs", "FND: rrst_sensitivity vs cgi"),
+  Original_P = p_values,
+  Adjusted_P = p_adjusted)
+print(results_rrst)
+
+# Save results as a text file
+write.table(results_rrst, "3.1_corr_RRST_symptoms.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+
+
+cor.test(df$metascore, df$sdq, method = "pearson")  
+# p-value = 0.01012, cor = -0.2683359 
+
+#  metascore
+cor1 <- cor.test(df_FND$metascore, df_FND$sdq, method = "pearson")  # r = -0.36099, p-value = 0.0174
+cor2 <- cor.test(filtered_df$metascore, filtered_df$sfmdrs, method = "pearson") 
+cor3 <- cor.test(df_FND$metascore, df_FND$cgi, method = "pearson") 
+p_values <- c(cor1$p.value, cor2$p.value, cor3$p.value) # extract pvalues
+p_adjusted <- p.adjust(p_values, method = "bonferroni") # Correct p-values for multiple comparisons (change for fdr / bonferroni etc if needed but result stay the same in this example)
+results_meta <- data.frame(
+  Comparison = c("FND: metascore vs sdq", "FND: metascore vs sfmdrs", "FND: metascore vs cgi"),
+  Original_P = p_values,
+  Adjusted_P = p_adjusted)
+print(results_meta)
+
+  # Save results as a text file
+  write.table(results_rrst, "3.1_corr_meta_symptoms.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+
+
+#### CLINICAL VARIABLES and INTEROCEPTIVE SENSIBILITY
+# separate per group
+cor.test(df_FND$maia_total, df_FND$sdq, method = "pearson")  
+cor.test(filtered_df$maia_total, filtered_df$sfmdrs, method = "pearson")  
+cor.test(df_FND$maia_total, df_FND$cgi, method = "pearson") 
+
+cor.test(df_FND$ias, df_FND$sdq, method = "pearson")  # t = -2.32, df = 41, p-value = 0.02539
+cor.test(filtered_df$ias, filtered_df$sfmdrs, method = "pearson")  
+cor.test(df_FND$ias, df_FND$cgi, method = "pearson") 
+
+
+# Collect all p-values from test of interoception varibales and clincial variables
+p_values <- c(
+  cor.test(df_FND$maia_total, df_FND$sdq, method = "pearson")$p.value,
+  cor.test(filtered_df$maia_total, filtered_df$sfmdrs, method = "pearson")$p.value,
+  cor.test(df_FND$maia_total, df_FND$cgi, method = "pearson")$p.value,
+  
+  cor.test(df_FND$ias, df_FND$sdq, method = "pearson")$p.value,
+  cor.test(filtered_df$ias, filtered_df$sfmdrs, method = "pearson")$p.value,
+  cor.test(df_FND$ias, df_FND$cgi, method = "pearson")$p.value
+)
+
+# Apply Bonferroni correction
+adjusted_p_values <- p.adjust(p_values, method = "bonferroni")
+
+# Combine with test names for clarity
+test_names <- c(
+  "MAIA vs sdq (FND)",
+  "MAIA vs sfmdrs (FND)",
+  "MAIAvs cgi (FND)",
+  
+  "IAS vs sdq (FND)",
+  "IAS vs sfmdrs (FND)",
+  "IAS vs cgi (FND)")
+
+# Create a data frame for easier interpretation
+results <- data.frame(
+  Test = test_names,
+  P_Value = p_values,
+  Adjusted_P_Value = adjusted_p_values
+)
+
+# View results
+print(results)
+
+  # Save results as a text file
+  write.table(results_rrst, "3.1_corr_intero_symptoms.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+
+```
+
+## 4.2 ) Identifying Covariates for Regression Analysis
+
+We identified SDQ to be correlated with RRST sensitivity and metacognition in the FND population only.
+
+Next, we need to identify which covariates will be included in our linear regression (separate per group) to test whether these correlation survive also the control for these covariates. To do so, we choose those variables that are both theoretically but also statistically correlated with both the predictor (RRST sensitivity and metacognition in our case) and the outcome variable (SDQ in our case).
+
+```{r}
+
+# does age need to be a covariate in the model ?
+cor.test(df_FND$age, df_FND$rrst_sensitivity, method = "pearson") 
+cor.test(df_FND$age, df_FND$metascore, method = "pearson") 
+cor.test(df_FND$age, df_FND$sdq, method = "pearson") 
+
+# does bmi need to be a covariate in the model?
+cor.test(df_FND$bmi, df_FND$rrst_sensitivity, method = "pearson") 
+cor.test(df_FND$bmi, df_FND$metascore, method = "pearson") 
+cor.test(df_FND$bmi, df_FND$sdq, method = "pearson") 
+
+# does anx_dep_sum need to be a covariate in the model?
+cor.test(df_FND$anx_dep_SUM, df_FND$rrst_sensitivity, method = "pearson") 
+cor.test(df_FND$anx_dep_SUM, df_FND$metascore, method = "pearson") 
+cor.test(df_FND$anx_dep_SUM, df_FND$sdq, method = "pearson") # trend with r= 0.294215, p-value = 0.05548
+
+# does medication need to be a covariate in the model?
+res<-t.test(df_FND$rrst_sensitivity[df_FND$psychotropic_medication == "1"], df_FND$rrst_sensitivity[df_FND$psychotropic_medication=="0"])
+res # sig difference across groups with or without intake of psychotropic medicatioN: t = -2.1273, p-value = 0.04011
+
+res<-t.test(df_FND$metascore[df_FND$psychotropic_medication == "1"], df_FND$metascore[df_FND$psychotropic_medication=="0"])
+res # 
+
+res<-t.test(df_FND$sdq[df_FND$psychotropic_medication == "1"], df_FND$sdq[df_FND$psychotropic_medication=="0"])
+res # sig difference across groups with or without intake of psychotropic medication: t = 2.6337, p-value = 0.0129
+
+
+# differences of sex in our predictor and outcome variable?
+res<-t.test(df_FND$rrst_sensitivity[df_FND$sex=="1"], df_FND$rrst_sensitivity[df_FND$sex=="2"])
+res # 
+
+res<-t.test(df_FND$metascore[df_FND$sex=="1"], df_FND$metascore[df_FND$sex=="2"])
+res # 
+
+res<-t.test(df_FND$sdq[df_FND$sex=="1"], df_FND$sdq[df_FND$sex=="2"])
+res # 
+```
+
+Seeing that the intake of psychotropic medication is both correlated to our outcome and predictor variables, we have to include this in our linear regression. We add it in an interaction term with group, as it is correlated with group, and then we run it on the full model (including both groups). For the other variables (sex, age, bmi) we do not have to include those, as they are not statistically correlated to both variables. For affective symptoms - there is a trend, hence we run a supplemantary analysis for including these as well.
+
+## 4.3) Linear Regression
+
+```{r}
+#| warning: FALSE
+#| error: FALSE
+
+# RRST sensitivity
+sdq_lm <- lm(formula = sdq ~  rrst_sensitivity*group + psychotropic_medication,
+                 data = df) 
+summary(sdq_lm)  
+confint(sdq_lm, level = 0.95)  
+
+  # Save as a text file
+  lm_summary <- capture.output(summary(sdq_lm))
+  lm_confint <- capture.output(confint(sdq_lm, level = 0.95))
+  lm_results <- c("### Linear Model Summary ###", lm_summary, 
+                "", "### Confidence Intervals ###", lm_confint)
+  writeLines(lm_results, "3.3_lm_rrst_med.txt")
+
+
+sdq_lm_affective <- lm(formula = sdq ~  rrst_sensitivity*group + psychotropic_medication + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm_affective)  # 
+confint(sdq_lm_affective, level = 0.95)  
+
+  # Save as a text file
+  lm_summary <- capture.output(summary(sdq_lm_affective))
+  lm_confint <- capture.output(confint(sdq_lm_affective, level = 0.95))
+  lm_results <- c("### Linear Model Summary ###", lm_summary, 
+                "", "### Confidence Intervals ###", lm_confint)
+  writeLines(lm_results, "3.3_lm_rrst_med_aff.txt")
+
+
+# metascore
+sdq_lm <- lm(formula = sdq ~  metascore*group + psychotropic_medication,
+                 data = df) 
+summary(sdq_lm)  # 
+confint(sdq_lm, level = 0.95)  
+
+  # Save as a text file
+  lm_summary <- capture.output(summary(sdq_lm))
+  lm_confint <- capture.output(confint(sdq_lm, level = 0.95))
+  lm_results <- c("### Linear Model Summary ###", lm_summary, 
+                "", "### Confidence Intervals ###", lm_confint)
+  writeLines(lm_results, "3.3_lm_meta_med.txt")
+
+sdq_lm_affective <- lm(formula = sdq ~  metascore*group + psychotropic_medication + anx_dep_SUM,
+                 data = df) 
+summary(sdq_lm_affective)  # 
+confint(sdq_lm_affective, level = 0.95)  
+
+  # Save as a text file
+  lm_summary <- capture.output(summary(sdq_lm_affective))
+  lm_confint <- capture.output(confint(sdq_lm_affective, level = 0.95))
+  lm_results <- c("### Linear Model Summary ###", lm_summary, 
+                "", "### Confidence Intervals ###", lm_confint)
+  writeLines(lm_results, "3.3_lm_meta_med_aff.txt")
+
+```
+
+## 4.4) SUPPLEMENTARY Regression - separate per group and controlling for ANX-DEP sum scores
+
+```{r}
+# RRST sensitivity FND
+sdq_lm_FND <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication,
+                 data = df_FND) 
+summary(sdq_lm_FND)  
+confint(sdq_lm_FND, level = 0.95)  
+
+sdq_lm_affective_FND <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication + anx_dep_SUM,
+                 data = df_FND) 
+summary(sdq_lm_affective_FND)  # 
+confint(sdq_lm_affective_FND, level = 0.95)  
+
+# RRST sensitivity HC
+sdq_lm_HC <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication,
+                 data = df_HC) 
+summary(sdq_lm_HC)  
+confint(sdq_lm_HC, level = 0.95)  
+
+sdq_lm_affective_HC <- lm(formula = sdq ~  rrst_sensitivity + psychotropic_medication + anx_dep_SUM,
+                 data = df_HC) 
+summary(sdq_lm_affective_HC)  # 
+confint(sdq_lm_affective_HC, level = 0.95)  
+
+# metascore FND
+sdq_lm_FND <- lm(formula = sdq ~  metascore + psychotropic_medication,
+                 data = df_FND) 
+summary(sdq_lm_FND)  # 
+confint(sdq_lm_FND, level = 0.95)  
+
+
+sdq_lm_affective_FND <- lm(formula = sdq ~  metascore + psychotropic_medication + anx_dep_SUM,
+                 data = df_FND) 
+summary(sdq_lm_affective_FND)  # 
+confint(sdq_lm_affective_FND, level = 0.95)  
+
+# metascore HC
+
+sdq_lm_HC <- lm(formula = sdq ~  metascore + psychotropic_medication,
+                 data = df_HC) 
+summary(sdq_lm_HC)  # 
+confint(sdq_lm_HC, level = 0.95)  
+
+sdq_lm_affective_HC <- lm(formula = sdq ~  metascore + psychotropic_medication + anx_dep_SUM,
+                 data = df_HC) 
+summary(sdq_lm_affective_HC)  # 
+confint(sdq_lm_affective_HC, level = 0.95)  
+
+```
+
+# 5) Modeling Accuracy Interaction (R-script from Reviewer 3)
+
+```{r}
+library(tidyverse)
+library(glmmTMB)
+library(ggeffects)
+library(patchwork)
+library(sjPlot)
+library(ggplot2)
+library(ggthemes)
+
+# Example RRST analysis script: modeling confidence data
+# Assumes 'rrst_data' contains:
+# - confidence: trial-level confidence ratings (scaled 0-1)
+# - stimLevel: stimulus intensity (continuous or ordinal)
+# - ResponseAccuracy: binary (0 = incorrect, 1 = correct)
+# - group: factor (e.g., "FND", "Control")
+# - SDQ_score: continuous clinical variable (e.g., dissociation)	
+# - pcode: participant ID	
+
+rrst_confidence_analysis <- readxl::read_xlsx( "/Users/nataschastoffel/Documents/GitHub/interoception_NS/data/processed/05-2025/rrst_confidence_analysis.xlsx", na = c("NaN", "NA", ""))
+# data is in wide format, so we have to change to long
+
+library(tidyverse)
+
+rrst_data <- rrst_confidence_analysis %>%
+  pivot_longer(
+    cols = matches("^(accuracy|stim|conf)_trial\\d+$"),
+    names_to = c(".value", "trial"),
+    names_pattern = "(accuracy|stim|conf)_trial(\\d+)"
+  ) %>%
+  rename(
+    ResponseAccuracy = accuracy,
+    stimLevel = stim,
+    confidence = conf
+  ) %>%
+  mutate(
+    trial = as.integer(trial),
+    ResponseAccuracy = as.integer(ResponseAccuracy),  # binary
+    stimLevel = as.numeric(stimLevel),                # continuous
+    confidence = as.numeric(confidence),              # continuous
+    group = as.factor(group),
+    sdq = as.numeric(sdq),
+    pcode = as.character(pcode) )
+
+
+# Note: Consider including (1 | stimLevel) as a random effect to control for stimulus-level variance if needed
+
+rrst_data <- rrst_data %>%
+  mutate(
+    ResponseAccuracy = factor(ResponseAccuracy, levels = c(1, 0), labels = c("Correct", "Incorrect")),
+    group = factor(group),  # Make sure group is also a factor if needed
+    pcode = as.character(pcode)
+  )
+```
+
+## 5.1) Interaction with GROUP
+
+```{r}
+# Model: Confidence ~ Stimulus × Accuracy × Group + (1|pcode)
+conf_fit <- glmmTMB(confidence ~ stimLevel * ResponseAccuracy * group + (1 | pcode) + (1 | stimLevel),
+                   data = rrst_data,
+                   family = ordbeta(),
+                   start = list(psi = c(0, 1)))
+
+summary(conf_fit)
+
+# Model summary table
+tab_model(conf_fit,
+         pred.labels = c("Intercept",
+                         "Stimulus Intensity",
+                         "Response Accuracy",
+                         "Group (FND vs Control)",
+                         "Stim × Accuracy",
+                         "Stim × Group",
+                         "Accuracy × Group",
+                         "Stim × Accuracy × Group"),
+         dv.labels = "Confidence",
+         file = "RRST_confidence_model.doc")
+
+# Define palette
+color_palette <- c("Correct" = "#1b9e77", "Incorrect" = "#d95f02")
+
+# Plot 1: Group × Accuracy Interaction
+plot_group_accuracy <- plot_model(conf_fit, type = "pred", terms = c("group", "ResponseAccuracy")) +
+ scale_color_manual(values = color_palette) +
+ labs(title = "Group and Accuracy Interaction",
+      x = "Group",
+      y = "Predicted Confidence") +
+ theme_minimal(base_size = 14) +
+ theme(legend.position = "top",
+       plot.title = element_text(face = "bold", hjust = 0.5),
+       axis.title = element_text(size = 14),
+       axis.text = element_text(size = 12))
+
+# Plot 2: Stimulus × Accuracy × Group Interaction
+plot_stim_acc_group <- plot_model(conf_fit, type = "pred", terms = c("stimLevel", "ResponseAccuracy", "group")) +
+  scale_color_manual(values = color_palette) +
+  scale_fill_manual(values = color_palette) + 
+  labs(title = "Stimulus Intensity × Accuracy × Group Interaction",
+       x = "Stimulus Intensity",
+       y = "Predicted Confidence") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "top",
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12))
+
+# Combine plots
+combined_plot <- plot_group_accuracy / plot_stim_acc_group +
+ plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+
+print(combined_plot)
+
+ggsave("S2_Accuracy_interactions_GROUP.tiff", 
+       plot = combined_plot, 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "tiff", 
+       compression = "lzw")
+
+```
+
+## 5.2) Interaction with SDQ
+
+```{r}
+# Model: Confidence ~ Stimulus × Accuracy × Group + (1|pcode)
+conf_fit <- glmmTMB(confidence ~ stimLevel * ResponseAccuracy * sdq + (1 | pcode) + (1 | stimLevel),
+                   data = rrst_data,
+                   family = ordbeta(),
+                   start = list(psi = c(0, 1)))
+
+summary(conf_fit)
+
+# Model summary table
+tab_model(conf_fit,
+         pred.labels = c("Intercept",
+                         "Stimulus Intensity",
+                         "Response Accuracy",
+                         "SDQ",
+                         "Stim × Accuracy",
+                         "Stim × SDQ",
+                         "Accuracy × SDQ",
+                         "Stim × Accuracy × SDQ"),
+         dv.labels = "Confidence",
+         file = "RRST_confidence_model.doc")
+
+# Define palette
+color_palette <- c("Correct" = "#1b9e77", "Incorrect" = "#d95f02")
+
+# Plot 1: SDQ × Accuracy Interaction
+plot_sdq_accuracy <- plot_model(conf_fit, type = "pred", terms = c("sdq", "ResponseAccuracy")) +
+ scale_color_manual(values = color_palette) +
+ labs(title = "SDQ and Accuracy Interaction",
+      x = "SDQ",
+      y = "Predicted Confidence") +
+ theme_minimal(base_size = 14) +
+ theme(legend.position = "top",
+       plot.title = element_text(face = "bold", hjust = 0.5),
+       axis.title = element_text(size = 14),
+       axis.text = element_text(size = 12))
+
+# Plot 2: Stimulus × Accuracy × SDQ Interaction
+plot_stim_acc_sdq <- plot_model(conf_fit, type = "pred", terms = c("stimLevel", "ResponseAccuracy", "sdq")) +
+  scale_color_manual(values = color_palette) +
+  scale_fill_manual(values = color_palette) + 
+  labs(title = "Stimulus Intensity × Accuracy × SDQ Interaction",
+       x = "Stimulus Intensity",
+       y = "Predicted Confidence") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "top",
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12))
+
+# Combine plots
+combined_plot <- plot_sdq_accuracy / plot_stim_acc_sdq +
+ plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+
+print(combined_plot)
+
+ggsave("S3_Accuracy_interactions_SDQ.tiff", 
+       plot = combined_plot, 
+       dpi = 600, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       device = "tiff", 
+       compression = "lzw")
+
+```
