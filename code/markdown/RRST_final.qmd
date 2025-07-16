@@ -38,6 +38,8 @@ library(lubridate)
 library(Hmisc)
 library(writexl)
 library(tidyr)
+library(patchwork)
+
 
 ### 0.0 PREPARATION -----------------------------------------------------------
 # load prepared and cleaned file from 00_preparation: df_yyyymmdd.csv
@@ -939,19 +941,19 @@ shapiro.test(df$dizziness)# NOT normally distributed
 shapiro.test(df$asthma)# NOT normally distributed
 shapiro.test(df$unpleasantness)# NOT normally distributed
 
-discomfort1 <- jitteredViolin(df, df$unpleasantness, "A) Unpleasantness") +
+discomfort1 <- jitteredViolin(df, df$unpleasantness, "A   Unpleasantness") +
   stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1, label.y = 110) +
   ylim(0, 120)
   
-discomfort2 <- jitteredViolin(df, df$dizziness, "B) Dizziness") +
+discomfort2 <- jitteredViolin(df, df$dizziness, "B   Dizziness") +
   stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1, label.y = 110) +
   ylim(0, 120)
 
-discomfort3 <- jitteredViolin(df, df$breathlessness, "C) Breathlessness") +
+discomfort3 <- jitteredViolin(df, df$breathlessness, "C   Breathlessness") +
   stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1, label.y = 110) +
   ylim(0, 120)
 
-discomfort4 <- jitteredViolin(df, df$asthma, "D) Asthma") +
+discomfort4 <- jitteredViolin(df, df$asthma, "D   Asthma") +
   stat_compare_means(method = "wilcox.test", paired = FALSE, label.x = 1, label.y = 110) +
   ylim(0, 120)
 
@@ -1005,12 +1007,13 @@ res # no sig difference between groups
 cor.test(df_RT$average_RT, df_RT$rrst_sensitivity) # r = -0.26, p = 0.013
 cor.test(df_RT$average_RT, df_RT$rrst_slope) # also testing the slope to represent interoceptive precision; p = 0.458
 
-# separately per group
+# separately per group Pearson
 cor.test(df_RT_FND$average_RT, df_RT_FND$rrst_sensitivity) # p = 0.060
 cor.test(df_RT_FND$average_RT, df_RT_FND$rrst_slope) # p = 0.3745
 
 cor.test(df_RT_HC$average_RT, df_RT_HC$rrst_sensitivity) # p = 0.041
 cor.test(df_RT_HC$average_RT, df_RT_HC$rrst_slope) # p = 0.885
+
 
 
 # RRST Sensitivity GROUP controlled for average RT
@@ -1113,7 +1116,7 @@ ggsave("3.3_violin_plots_RTs.tiff",
        device = "tiff", 
        compression = "lzw")
 
-ggsave("Figure4.tiff", 
+ggsave("Figure5.tiff", 
        plot = gridExtra::grid.arrange(violin_plots_RTs, RRST_RT, ncol = 2), 
        dpi = 600, 
        width = 8, 
@@ -1122,7 +1125,7 @@ ggsave("Figure4.tiff",
        device = "tiff", 
        compression = "lzw")
 
-ggsave("Figure4a-b.svg", 
+ggsave("Figure5a-b.svg", 
        plot = gridExtra::grid.arrange(violin_plots_RTs, RRST_RT, ncol = 2), 
        dpi = 600, 
        width = 8, 
@@ -1256,6 +1259,48 @@ cor.test(df_FND$metascore, df_FND$sdq, method = "pearson")
 cor.test(df_FND$rrst_sensitivity, df_FND$sdq, method = "pearson")  
 cor.test(df_HC$metascore, df_HC$sdq, method = "pearson")  
 cor.test(df_HC$rrst_sensitivity, df_HC$sdq, method = "pearson")  
+
+# Prepare the data for visualization
+df_plot <- df %>%
+  mutate(group = factor(group, levels = c(0, 1), labels = c("HC", "FND")))
+
+# Define color palette
+group_colors <- c("FND" = "#E95248", "HC" = "#868686FF")
+
+# Panel A
+RRST_SDQ <- ggplot(df_plot, aes(x = sdq, y = rrst_sensitivity, color = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Dissociative Score (SDQ-20)",
+    y = "Respiratory Sensitivity (RRST)",
+    title = "A   Respiratory Interoception (FND vs HC)",
+    color = "Group"
+  ) +
+  theme_classic() +
+  scale_color_manual(values = group_colors) +
+  theme(panel.grid = element_blank())
+
+# Panel B
+META_SDQ <- ggplot(df_plot, aes(x = sdq, y = metascore, color = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Dissociative Score (SDQ-20)",
+    y = "Respiratory Metacognition (AUC)",
+    title = "B   Metacognitive Insight (FND vs HC)",
+    color = "Group"
+  ) +
+  theme_classic() +
+  scale_color_manual(values = group_colors) +
+  theme(panel.grid = element_blank())
+
+# Combine with patchwork
+combined_plot <- RRST_SDQ | META_SDQ  # side-by-side layout
+
+# Save as TIFF with 600 DPI
+ggsave("Figure4_combined.tiff", plot = combined_plot,
+       dpi = 600, width = 10, height = 5, units = "in", device = "tiff")
 
 ```
 
@@ -1513,27 +1558,27 @@ color_palette <- c("Correct" = "#1b9e77", "Incorrect" = "#d95f02")
 # Plot 1: Group × Accuracy Interaction
 plot_group_accuracy <- plot_model(conf_fit, type = "pred", terms = c("group", "ResponseAccuracy")) +
  scale_color_manual(values = color_palette) +
- labs(title = "Group and Accuracy Interaction",
+ labs(title = "A)     Group and Accuracy Interaction",
       x = "Group",
       y = "Predicted Confidence") +
- theme_minimal(base_size = 14) +
+ theme_minimal(base_size = 10) +
  theme(legend.position = "top",
        plot.title = element_text(face = "bold", hjust = 0.5),
-       axis.title = element_text(size = 14),
-       axis.text = element_text(size = 12))
+       axis.title = element_text(size = 10),
+       axis.text = element_text(size = 8))
 
 # Plot 2: Stimulus × Accuracy × Group Interaction
 plot_stim_acc_group <- plot_model(conf_fit, type = "pred", terms = c("stimLevel", "ResponseAccuracy", "group")) +
   scale_color_manual(values = color_palette) +
   scale_fill_manual(values = color_palette) + 
-  labs(title = "Stimulus Intensity × Accuracy × Group Interaction",
+  labs(title = "B)   Stimulus Intensity × Accuracy × Group Interaction",
        x = "Stimulus Intensity",
        y = "Predicted Confidence") +
-  theme_minimal(base_size = 14) +
+  theme_minimal(base_size = 10) +
   theme(legend.position = "top",
         plot.title = element_text(face = "bold", hjust = 0.5),
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12))
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
 # Combine plots
 combined_plot <- plot_group_accuracy / plot_stim_acc_group +
@@ -1580,31 +1625,38 @@ tab_model(conf_fit,
 
 # Define palette
 color_palette <- c("Correct" = "#1b9e77", "Incorrect" = "#d95f02")
+# Get predicted values so that the confidence inteval sare correcelty colored
+library(ggeffects)
+pred_sdq_accuracy <- ggpredict(conf_fit, terms = c("sdq", "ResponseAccuracy"))
 
-# Plot 1: SDQ × Accuracy Interaction
-plot_sdq_accuracy <- plot_model(conf_fit, type = "pred", terms = c("sdq", "ResponseAccuracy")) +
- scale_color_manual(values = color_palette) +
- labs(title = "SDQ and Accuracy Interaction",
-      x = "SDQ",
-      y = "Predicted Confidence") +
- theme_minimal(base_size = 14) +
- theme(legend.position = "top",
-       plot.title = element_text(face = "bold", hjust = 0.5),
-       axis.title = element_text(size = 14),
-       axis.text = element_text(size = 12))
+# Plot 1: SDQ × Accuracy with matched line and ribbon colors
+plot_sdq_accuracy <- ggplot(pred_sdq_accuracy, aes(x = x, y = predicted, color = group, fill = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, color = NA) +
+  scale_color_manual(values = color_palette, name = "ResponseAccuracy") +
+  scale_fill_manual(values = color_palette, name = "ResponseAccuracy") +
+  labs(title = "A)     SDQ and Accuracy Interaction",
+       x = "SDQ",
+       y = "Predicted Confidence") +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "top",
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
-# Plot 2: Stimulus × Accuracy × SDQ Interaction
+
+# Plot 2:  Stimulus × Accuracy × SDQ Interaction
 plot_stim_acc_sdq <- plot_model(conf_fit, type = "pred", terms = c("stimLevel", "ResponseAccuracy", "sdq")) +
   scale_color_manual(values = color_palette) +
   scale_fill_manual(values = color_palette) + 
-  labs(title = "Stimulus Intensity × Accuracy × SDQ Interaction",
+  labs(title = "B)   Stimulus Intensity × Accuracy × SDQ Interaction",
        x = "Stimulus Intensity",
        y = "Predicted Confidence") +
-  theme_minimal(base_size = 14) +
+  theme_minimal(base_size = 10) +
   theme(legend.position = "top",
         plot.title = element_text(face = "bold", hjust = 0.5),
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12))
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
 # Combine plots
 combined_plot <- plot_sdq_accuracy / plot_stim_acc_sdq +
