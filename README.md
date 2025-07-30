@@ -12,13 +12,18 @@ The original RRST device was built and published by Nikolova et al 2019
 
 Our repository is structured as follows:
 
-device :	information about the assembly of the device including a manual, pictures, videos and the task code
-Publication :	link to the publication derived from these data and analysis
-code :		
-    > R analysis markdown :  R script (quarto document/html file)
-    > output : output generated via Rscript
-    > Python HBBM model :  python script for the analysis on the HBBM
-    > data :  data disctionary with explanation of variables, civ with confidence analysis, and RRST raw variables for those participate who gave consent on further use
+#### device :	
+information about the assembly of the device including pictures, videos of device and the set up
+-  task code
+
+#### Publication :	
+link to the publication derived from these data and analysis
+
+#### code :		
+-  R analysis markdown :  R script (quarto document/html file)
+-  output : output generated via Rscript
+-  Python HBBM model :  python script for the analysis on the HBBM
+-  data :  data dictionary with explanation of variables, civ with confidence analysis, and RRST raw variables for those participate who gave consent on further use
         
 
 
