@@ -3,7 +3,7 @@
  date: 		30 July 2025
  author: 	Natascha Stoffel, natascha.stoffel@unifr.ch
  
-This git hub repository entails the data, scripts and output for the project "Respiratory sensitivity is reduced in functional neurological disorder and associated with higher somatoform dissociation" - Stoffel & Sojka, Gninenko, Mouthon, von der Weid, Terranova, Aybek published at Brain Communications in 2025
+This git hub repository entails the data, scripts and output for the project "Respiratory sensitivity is reduced in functional neurological disorder and associated with higher somatoform dissociation" - published in Brain Communications, Volume 7, Issue 4, 2025, fcaf283, https://doi.org/10.1093/braincomms/fcaf283
 
 
 The original RRST device was built and published by Nikolova et al 2019
