@@ -1,7 +1,7 @@
 # RRST in FND
 
- date: 		30 July 2025
- author: 	Natascha Stoffel, natascha.stoffel@unifr.ch (new contact address: natascha.stoffel@unibe.ch)
+ date: 		30 July 2025 
+ author: 	Natascha Stoffel, natascha.stoffel@unibe.ch
  
 This git hub repository contains data, scripts and output for the project "**Respiratory sensitivity is reduced in functional neurological disorder and associated with higher somatoform dissociation**" - published in *Brain Communications*, Volume 7, Issue 4, 2025, fcaf283, *https://doi.org/10.1093/braincomms/fcaf283*
 
